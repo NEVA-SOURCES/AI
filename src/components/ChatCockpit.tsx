@@ -3,11 +3,12 @@ import { useApp } from "../AppContext";
 import { 
   Send, Paperclip, CheckSquare, X, Settings, Layers, ShieldAlert,
   FileCode, Check, Copy, Radio, Sparkles, ChevronDown, Brain, Globe, Copy as CopyIcon,
-  Cpu, Terminal, Activity, Loader2, Link2, Download, Archive
+  Cpu, Terminal, Activity, Loader2, Link2, Download, Archive, Eye, EyeOff
 } from "lucide-react";
 import Markdown from "react-markdown";
 import JSZip from "jszip";
 import { downloadRawFile } from "../utils/fileExporter";
+import ThinkingStream from "./ThinkingStream";
 
 // Markdown helper parsers
 function parseMessageContent(content: string) {
@@ -1244,6 +1245,7 @@ export default function ChatCockpit({ setCurrentRoute }: ChatCockpitProps) {
   const [forceShowAgentStream, setForceShowAgentStream] = useState(false);
   const [modelSearch, setModelSearch] = useState("");
   const [modelTypeFilter, setModelTypeFilter] = useState<"all" | "logic" | "basic">("all");
+  const [hiddenThinkingMsgIds, setHiddenThinkingMsgIds] = useState<Record<string, boolean>>({});
 
   // Set default state based on viewport width on mount
   useEffect(() => {
@@ -1806,6 +1808,30 @@ export default function ChatCockpit({ setCurrentRoute }: ChatCockpitProps) {
                         ME
                       </div>
                     )}
+                    {!isUser && (msg.isThinking === true || (msg.steps && msg.steps.length > 0)) && (
+                      <button
+                        onClick={() => {
+                          const id = msg.id || index.toString();
+                          setHiddenThinkingMsgIds(prev => ({
+                            ...prev,
+                            [id]: !prev[id]
+                          }));
+                        }}
+                        className="ml-3 inline-flex items-center gap-1 px-1.5 py-0.5 rounded border border-cyan-500/10 hover:border-cyan-500/30 bg-cyan-950/20 hover:bg-cyan-900/30 text-zinc-400 hover:text-cyan-300 transition-all cursor-pointer font-bold select-none text-[8.5px]"
+                      >
+                        {hiddenThinkingMsgIds[msg.id || index.toString()] ? (
+                          <>
+                            <EyeOff className="w-2.5 h-2.5 text-zinc-500" />
+                            <span>Show Thinking</span>
+                          </>
+                        ) : (
+                          <>
+                            <Eye className="w-2.5 h-2.5 text-cyan-400" />
+                            <span>Hide Thinking</span>
+                          </>
+                        )}
+                      </button>
+                    )}
                   </div>
 
                   {/* Bubble Container */}
@@ -1814,8 +1840,25 @@ export default function ChatCockpit({ setCurrentRoute }: ChatCockpitProps) {
                       ? "bg-zinc-955/80 border border-zinc-800 text-zinc-200 rounded-tr-none" 
                       : "bg-[#090a10] border border-cyan-500/10 text-zinc-300 rounded-tl-none hover:border-cyan-500/20 transition-all duration-300"
                   }`}>
+                    {/* Render live ThinkingStream timeline */}
+                    {!isUser && (msg.isThinking === true || (msg.steps && msg.steps.length > 0)) && (
+                      <div 
+                        className="transition-all duration-500 ease-in-out overflow-hidden"
+                        style={{ 
+                          maxHeight: hiddenThinkingMsgIds[msg.id || index.toString()] ? "0px" : "1200px",
+                          opacity: hiddenThinkingMsgIds[msg.id || index.toString()] ? 0 : 1,
+                          marginBottom: hiddenThinkingMsgIds[msg.id || index.toString()] ? "0px" : "16px"
+                        }}
+                      >
+                        <ThinkingStream 
+                          steps={msg.steps || []} 
+                          isStreaming={!!msg.isThinking} 
+                        />
+                      </div>
+                    )}
+
                     {/* Render inline Thinking Trace/Cognitive Trace if present */}
-                    {!isUser && thinkContent && (
+                    {!isUser && thinkContent && (!msg.steps || msg.steps.length === 0) && (
                       <ThinkingAccordion content={thinkContent} />
                     )}
 

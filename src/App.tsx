@@ -240,6 +240,45 @@ function MainAppShell() {
 
   const [currentRoute, setCurrentRoute] = useState<string>("monitor");
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
+  // Store active non-monitor route
+  useEffect(() => {
+    if (currentRoute !== "monitor") {
+      localStorage.setItem("last_active_route", currentRoute);
+    }
+  }, [currentRoute]);
+
+  // Command palette navigation & global event bus route dispatcher
+  useEffect(() => {
+    const handleNav = (e: Event) => {
+      const customEvent = e as CustomEvent<string>;
+      if (customEvent.detail) {
+        setCurrentRoute(customEvent.detail);
+      }
+    };
+    window.addEventListener("nav-route", handleNav);
+    return () => window.removeEventListener("nav-route", handleNav);
+  }, []);
+
+  // Global Keyboard shortcut Cmd/Ctrl + Shift + L to open NEVA's computer overlay
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === "l") {
+        e.preventDefault();
+        setCurrentRoute(prev => {
+          if (prev === "monitor") {
+            const fallback = localStorage.getItem("last_active_route") || "chat";
+            return fallback === "monitor" ? "chat" : fallback;
+          } else {
+            localStorage.setItem("last_active_route", prev);
+            return "monitor";
+          }
+        });
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
   
   // Chat composer states
   const [composorPrompt, setComposorPrompt] = useState("");

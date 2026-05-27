@@ -72,6 +72,9 @@ export interface Message {
     id: string;
     result: any;
   }[];
+  isThinking?: boolean;          // true while stream is live
+  steps?: AgentStep[];             // live steps for ThinkingStream
+  thinkingTrace?: string;        // compiled full trace after completion
 }
 
 export interface CapabilityProfile {
@@ -128,6 +131,8 @@ export interface AgentStep {
   startedAt: string;
   finishedAt?: string;
   durationMs?: number;
+  thinkingChunks?: string[];     // incremental thinking text pieces
+  isExpanded?: boolean;            // UI state (optional, can be client-only)
 }
 
 export interface Memory {

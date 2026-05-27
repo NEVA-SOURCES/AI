@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { Workspace, Project, Conversation, Message, CapabilityProfile, AgentRun, AgentStep, Memory, Skill, FileItem, AgentPoll, AgentApproval, OutputItem, LogEvent } from "./types";
+import { Workspace, Project, Conversation, Message, CapabilityProfile, AgentRun, AgentStep, Memory, Skill, FileItem, AgentPoll, AgentApproval, OutputItem, LogEvent, StepState } from "./types";
 import { OPENROUTER_MODELS, OpenRouterModel } from "./data/models";
 
 interface AppContextType {
@@ -370,6 +370,161 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
     setMessages(prev => [...prev, optimMsg]);
 
+    const openRouterApiKey = localStorage.getItem("openrouter_api_key") || "";
+
+    if (thinkingEnabled) {
+      // 2. Setup dynamic placeholder for assistant thinking message
+      const asstTempId = "thinking_" + Math.random().toString(36).substring(7);
+      const tempAsstMsg: Message = {
+        id: asstTempId,
+        conversationId: activeConversation.id,
+        role: "assistant",
+        content: "",
+        thinkingTrace: "",
+        isThinking: true,
+        steps: [],
+        createdAt: new Date().toISOString()
+      };
+      setMessages(prev => [...prev, tempAsstMsg]);
+
+      try {
+        const response = await fetch("/api/chat/stream", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            conversationId: activeConversation.id,
+            content,
+            workspaceId: activeWorkspace?.id || "w1",
+            modelSelected,
+            missionModeActive,
+            openRouterApiKey,
+            thinkingEnabled,
+            searchEnabled
+          })
+        });
+
+        if (!response.body) throw new Error("Null stream response body");
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder("utf-8");
+        let buffer = "";
+
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const parts = buffer.split("\n\n");
+          buffer = parts.pop() || "";
+
+          for (const part of parts) {
+            if (!part.trim()) continue;
+
+            let currentEvent = "";
+            let currentDataString = "";
+
+            const lines = part.split("\n");
+            for (const line of lines) {
+              if (line.startsWith("event:")) {
+                currentEvent = line.replace("event:", "").trim();
+              } else if (line.startsWith("data:")) {
+                currentDataString = line.replace("data:", "").trim();
+              }
+            }
+
+            if (!currentDataString) continue;
+
+            try {
+              const payload = JSON.parse(currentDataString);
+
+              if (currentEvent === "thinking_start") {
+                const initSteps = (payload.plan?.steps || []).map((s: any) => ({
+                  id: s.id,
+                  runId: payload.runId,
+                  agentKey: s.agent,
+                  status: "pending" as const,
+                  state: s.state || StepState.PLANNING,
+                  startedAt: new Date().toISOString(),
+                  reasoningTrace: ""
+                }));
+                setMessages(prev => prev.map(m => m.id === asstTempId ? { ...m, steps: initSteps } : m));
+              } 
+              else if (currentEvent === "step_update") {
+                const updatedStep = payload.step;
+                setMessages(prev => prev.map(m => {
+                  if (m.id === asstTempId) {
+                    const currentSteps = m.steps || [];
+                    const exists = currentSteps.find(s => s.id === updatedStep.id);
+                    let newSteps;
+                    if (exists) {
+                      newSteps = currentSteps.map(s => s.id === updatedStep.id ? { ...s, ...updatedStep, status: "running" as const } : s);
+                    } else {
+                      newSteps = [...currentSteps, { ...updatedStep, status: "running" as const }];
+                    }
+                    return { ...m, steps: newSteps };
+                  }
+                  return m;
+                }));
+              }
+              else if (currentEvent === "step_thinking_chunk") {
+                const { stepId, chunk } = payload;
+                setMessages(prev => prev.map(m => {
+                  if (m.id === asstTempId) {
+                    const newSteps = (m.steps || []).map(s => {
+                      if (s.id === stepId) {
+                        return { ...s, reasoningTrace: (s.reasoningTrace || "") + chunk };
+                      }
+                      return s;
+                    });
+                    return { ...m, steps: newSteps };
+                  }
+                  return m;
+                }));
+              }
+              else if (currentEvent === "step_complete") {
+                const completedStep = payload.step;
+                setMessages(prev => prev.map(m => {
+                  if (m.id === asstTempId) {
+                    const newSteps = (m.steps || []).map(s => {
+                      if (s.id === completedStep.id) {
+                        return { ...s, ...completedStep, status: "completed" as const };
+                      }
+                      return s;
+                    });
+                    return { ...m, steps: newSteps };
+                  }
+                  return m;
+                }));
+              }
+              else if (currentEvent === "final_response") {
+                const resMessage = payload.message;
+                setMessages(prev => prev.map(m => m.id === asstTempId ? {
+                  ...m,
+                  id: resMessage.id,
+                  content: resMessage.content,
+                  isThinking: false,
+                  modelUsed: resMessage.modelUsed,
+                  thinkingTrace: resMessage.thinkingTrace,
+                  steps: resMessage.steps || m.steps
+                } : m));
+              }
+            } catch (pErr) {
+              console.error("SSE parse exception inside event stream loop:", pErr);
+            }
+          }
+        }
+        triggerReFetch();
+      } catch (streamErr) {
+        console.error("Stream reader execution failed, falling back to synchronous fetch:", streamErr);
+        // Fallback
+        setMessages(prev => prev.filter(m => m.id !== asstTempId));
+        await sendFallbackSyncMessage(content);
+      }
+    } else {
+      await sendFallbackSyncMessage(content);
+    }
+  };
+
+  const sendFallbackSyncMessage = async (content: string) => {
     try {
       const openRouterApiKey = localStorage.getItem("openrouter_api_key") || "";
       const res = await fetch("/api/chat", {
