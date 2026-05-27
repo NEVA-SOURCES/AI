@@ -1,0 +1,6 @@
+{
+  "name": "NEVA AI",
+  "description": "Cinematic, mission-control AI agent workspace and operating system platform.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
