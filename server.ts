@@ -31,6 +31,9 @@ function getGeminiAI() {
   return aiClient;
 }
 
+// In-memory record tracking model failure counts to temporarily deprioritize unstable models
+const modelFailureCounts: Record<string, number> = {};
+
 // Helper to execute content generation with automated retries and resilient fallback routing
 async function generateGeminiContentWithFallback(
   ai: GoogleGenAI,
@@ -38,11 +41,33 @@ async function generateGeminiContentWithFallback(
   systemInstruction: string,
   preferredModel?: string
 ): Promise<{ text: string; modelUsed: string; errorMsg?: string }> {
-  // Ordered sequence of fallback models to cycle through under high demand or 503 constraints
-  const modelsToTry = ["gemini-3.5-flash", "gemini-3.1-flash-lite"];
+  // Normalize preferred model to make sure it matches short model identifiers of @google/genai SDK
+  let normalizedPreferred = preferredModel ? preferredModel.replace("google/", "") : "";
+  if (normalizedPreferred.includes(":")) {
+    normalizedPreferred = normalizedPreferred.split(":")[0];
+  }
+
+  // Base list of highly resilient, general-availability fallback models
+  const baseModels = [
+    "gemini-2.5-flash",
+    "gemini-1.5-flash",
+    "gemini-3.5-flash",
+    "gemini-2.5-pro",
+    "gemini-3.1-flash-lite",
+    "gemini-1.5-pro"
+  ];
+
+  // Dynamic search path sorted by performance and health metrics (least failure counts first)
+  const modelsToTry = [...baseModels];
+  modelsToTry.sort((a, b) => (modelFailureCounts[a] || 0) - (modelFailureCounts[b] || 0));
   
-  if (preferredModel && preferredModel.startsWith("gemini") && !modelsToTry.includes(preferredModel)) {
-    modelsToTry.unshift(preferredModel);
+  if (normalizedPreferred && !modelsToTry.includes(normalizedPreferred)) {
+    modelsToTry.unshift(normalizedPreferred);
+  } else if (normalizedPreferred && modelsToTry.includes(normalizedPreferred)) {
+    // Put normalizedPreferred in front of standard list to prioritize it
+    const idx = modelsToTry.indexOf(normalizedPreferred);
+    modelsToTry.splice(idx, 1);
+    modelsToTry.unshift(normalizedPreferred);
   }
 
   let lastError: any = null;
@@ -61,24 +86,33 @@ async function generateGeminiContentWithFallback(
           }
         });
         if (response.text) {
+          // On success, decay failure counts to recover model status over time
+          if (modelFailureCounts[model] > 0) {
+            modelFailureCounts[model] = Math.max(0, modelFailureCounts[model] - 1);
+          }
           return { text: response.text, modelUsed: model };
         }
       } catch (err: any) {
         lastError = err;
-        console.warn(`[NEVA Engine Warning] Ingestion attempt on ${model} failed: ${err.message || err}`);
+        modelFailureCounts[model] = (modelFailureCounts[model] || 0) + 1;
+        // Quiet logging instead of console.warn to avoid triggering user-facing error indicators for handled fallbacks
+        console.log(`[NEVA Engine Info] Fallback routing: Ingestion attempt on ${model} returned code ${err.status || err.code || '503'}. Failure code tracked: ${modelFailureCounts[model]}.`);
         attempts++;
         if (attempts < maxAttempts) {
-          // Wait 1000ms for temporary load spiked indices to settle
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          // Wait 600ms for temporary load spiked indices to settle
+          await new Promise(resolve => setTimeout(resolve, 600));
         }
       }
     }
   }
 
+  // Since all models failed, log a warning now with all relevant context
+  console.warn(`[NEVA Engine Warning] All fallback model pathways exhausted. Last error: ${lastError?.message || lastError}`);
+
   return { 
     text: "", 
     modelUsed: "", 
-    errorMsg: lastError?.message || "Model endpoint capacity bound exceeded" 
+    errorMsg: lastError?.message || lastError || "Model endpoint capacity bound exceeded" 
   };
 }
 

@@ -1393,6 +1393,11 @@ export default function ChatCockpit({ setCurrentRoute }: ChatCockpitProps) {
 
   const handleComposeSend = () => {
     if (!composorPrompt.trim()) return;
+    // === MOBILE & QUERY ROUTING FIX ===
+    if (deepThinkSearchActive) {
+      handleDeepThinkSearch();
+      return;
+    }
     sendMessage(composorPrompt);
     setComposorPrompt("");
     if (composerRef.current) {
@@ -1455,7 +1460,7 @@ export default function ChatCockpit({ setCurrentRoute }: ChatCockpitProps) {
       {leftSidebarOpen && (
         <div 
           onClick={() => setLeftSidebarOpen(false)}
-          className="fixed inset-0 bg-black/70 backdrop-blur-xs z-40 lg:hidden cursor-pointer animate-fade-in"
+          className="fixed inset-0 bg-black/70 backdrop-blur-xs z-[200] lg:hidden cursor-pointer animate-fade-in"
         />
       )}
 
@@ -1463,7 +1468,7 @@ export default function ChatCockpit({ setCurrentRoute }: ChatCockpitProps) {
       <aside 
         className={`
           /* Base mobile drawer styles */
-          fixed inset-y-3 left-3 z-50 w-76 flex flex-col justify-between bg-[#040507] border border-zinc-850 rounded-2xl p-4 transform transition-all duration-300 ease-in-out h-[calc(100%-24px)]
+          fixed inset-y-3 left-3 z-[210] w-76 flex flex-col justify-between bg-[#040507] border border-zinc-850 rounded-2xl p-4 transform transition-all duration-300 ease-in-out h-[calc(100%-24px)]
           /* Desktop layout adaptation overrides */
           lg:relative lg:inset-auto lg:z-0 lg:w-76 lg:border lg:border-zinc-900 lg:rounded-2xl lg:p-4 lg:transition-all lg:duration-300 lg:ease-in-out lg:h-full lg:shrink-0
           ${
@@ -2161,22 +2166,25 @@ export default function ChatCockpit({ setCurrentRoute }: ChatCockpitProps) {
         </div>
 
         {/* HIGH-TECH COMPOSER CONTAINER */}
-        <div className="mt-auto p-4 border-t border-zinc-900/80 bg-[#07080b]/90 backdrop-blur-md relative select-none">
+        {/* === MOBILE FIX ===: Ensure composer is raised on top, selectable, and has higher z-index, but hides on mobile when sidebar is open */}
+        <div className={`mt-auto p-4 border-t border-zinc-900/80 bg-[#07080b]/95 backdrop-blur-md relative z-[100] select-text transition-all ${
+          (leftSidebarOpen || rightChatHubOpen || liveMonitorActive) ? "max-lg:hidden" : ""
+        }`}>
           {/* Drag & Drop Feedback Panel Overlay */}
           {isDragging && (
-            <div className="absolute inset-0 bg-cyan-950/60 backdrop-blur-sm flex items-center justify-center border-t border-cyan-500/30 z-30 animate-pulse rounded-t-xl">
+            <div className="absolute inset-0 bg-cyan-950/60 backdrop-blur-sm flex items-center justify-center border-t border-cyan-500/30 z-[110] animate-pulse rounded-t-xl pointer-events-none">
               <div className="text-center font-mono">
                 <Paperclip className="w-8 h-8 text-cyan-404 mx-auto mb-2 animate-bounce" />
-                <span className="text-[10px] uppercase tracking-widest text-cyan-300 font-extrabold">Release to Index in Workspace Context</span>
+                <span className="text-[10px] uppercase tracking-widest text-cyan-300 font-extrabold animate-pulse">Release to Index in Workspace Context</span>
               </div>
             </div>
           )}
 
           {/* Preview space for indices uploaded/held in workspace session */}
           {files.length > 0 && (
-            <div className="flex gap-2 mb-3 overflow-x-auto pb-1.5 scrollbar-none">
+            <div className="flex gap-2 mb-3 overflow-x-auto pb-1.5 scrollbar-none relative z-[120]">
               {files.slice(-4).map(fileObj => (
-                <div key={fileObj.id} className="flex items-center gap-1.5 p-1.5 px-2.5 bg-[#050608] border border-zinc-900 rounded-lg text-[8.5px] font-mono text-zinc-400 max-w-[170px] shrink-0 animate-fade-in">
+                <div key={fileObj.id} className="flex items-center gap-1.5 p-1.5 px-2.5 bg-[#050608] border border-zinc-900 rounded-lg text-[8.5px] font-mono text-zinc-400 max-w-[170px] shrink-0 animate-fade-in select-text">
                   <FileCode className="w-3.5 h-3.5 text-cyan-404" />
                   <span className="truncate flex-1 uppercase" title={fileObj.name}>{fileObj.name}</span>
                   <span className="text-[7px] text-zinc-600">{(fileObj.sizeBytes / 1024).toFixed(0)}K</span>
@@ -2186,51 +2194,15 @@ export default function ChatCockpit({ setCurrentRoute }: ChatCockpitProps) {
           )}
 
           {/* Composer area with custom actions row nested */}
-          <div className="flex items-end gap-2.5 bg-[#0c0d12] border border-zinc-850 rounded-2xl p-2.5 focus-within:border-cyan-500/30 transition-all shadow-inner relative">
-            <button 
-              onClick={() => fileInputRef.current?.click()} 
-              className="p-2 hover:bg-[#161720] rounded-xl text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer shrink-0 mb-0.5"
-              title="Attach documents elements to logical workspace context"
-            >
-              <Paperclip className="w-4 h-4" />
-            </button>
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileUpload}
-              className="hidden"
-              multiple
-            />
-            
-            <textarea
-              id="chat-textarea-input"
-              ref={composerRef}
-              rows={1}
-              className="flex-1 bg-transparent border-none outline-none text-[11.5px] text-zinc-250 placeholder-zinc-600 font-sans resize-none py-1.5 max-h-[140px] focus:ring-0 leading-relaxed scrollbar-thin overflow-y-auto"
-              placeholder="Formulate logical requests, trigger analytical tools, or query verified indexing..."
-              value={composorPrompt}
-              onChange={e => {
-                setComposorPrompt(e.target.value);
-                if (composerRef.current) {
-                  composerRef.current.style.height = "auto";
-                  composerRef.current.style.height = `${composerRef.current.scrollHeight}px`;
-                }
-              }}
-              onKeyDown={e => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  handleComposeSend();
-                }
-              }}
-            />
-
-            <div className="flex items-center gap-2 shrink-0 select-none pb-0.5 font-sans">
-              {/* Short quick action badge indicators indicating mode status */}
+          {/* === MOBILE FIX ===: Add .composer-safe-area and ensure interactive layout */}
+          <div className="flex flex-col gap-2.5 bg-[#0c0d12] border border-zinc-850 rounded-2xl p-2.5 focus-within:border-cyan-500/30 transition-all shadow-inner relative z-[130] composer-safe-area select-text">
+            {/* Toolbar row with scrolling tools */}
+            <div className="flex items-center gap-2 pb-2 border-b border-zinc-900/50 overflow-x-auto scrollbar-none justify-start select-none">
               <button
                 type="button"
                 onClick={() => !deepThinkSearchActive && setThinkingEnabled(!thinkingEnabled)}
                 disabled={deepThinkSearchActive}
-                className={`text-[7.5px] font-mono tracking-wider font-extrabold uppercase rounded p-1 select-none leading-none transition-all cursor-pointer border ${
+                className={`text-[7.5px] font-mono tracking-wider font-extrabold uppercase rounded p-1 select-none leading-none transition-all cursor-pointer border shrink-0 ${
                   (thinkingEnabled || deepThinkSearchActive)
                     ? "bg-purple-950/40 text-purple-400 border-purple-900/40" 
                     : "bg-[#090a10]/60 text-zinc-500 border-zinc-900 hover:text-zinc-400"
@@ -2244,7 +2216,7 @@ export default function ChatCockpit({ setCurrentRoute }: ChatCockpitProps) {
                 type="button"
                 onClick={() => !deepThinkSearchActive && setSearchEnabled(!searchEnabled)}
                 disabled={deepThinkSearchActive}
-                className={`text-[7.5px] font-mono tracking-wider font-extrabold uppercase rounded p-1 select-none leading-none transition-all cursor-pointer border ${
+                className={`text-[7.5px] font-mono tracking-wider font-extrabold uppercase rounded p-1 select-none leading-none transition-all cursor-pointer border shrink-0 ${
                   (searchEnabled || deepThinkSearchActive)
                     ? "bg-emerald-955/40 text-emerald-400 border-emerald-900/40" 
                     : "bg-[#090a10]/60 text-zinc-500 border-zinc-900 hover:text-zinc-400"
@@ -2257,15 +2229,15 @@ export default function ChatCockpit({ setCurrentRoute }: ChatCockpitProps) {
               <button 
                 type="button"
                 onClick={() => setLiveMonitorActive(!liveMonitorActive)}
-                className={`text-[7.5px] font-mono tracking-wider font-extrabold uppercase rounded p-1 select-none leading-none transition-all cursor-pointer flex items-center gap-1 border ${
+                className={`text-[7.5px] font-mono tracking-wider font-extrabold uppercase rounded p-1 select-none leading-none transition-all cursor-pointer flex items-center gap-1 border shrink-0 ${
                   liveMonitorActive 
                     ? "bg-cyan-950/40 text-cyan-404 border-cyan-800/25 shadow-[0_0_8px_rgba(6,182,212,0.2)] ring-1 ring-cyan-500/10" 
-                    : "bg-[#090a10]/60 text-zinc-500 border-zinc-900 hover:text-zinc-400 hover:border-zinc-805"
+                    : "bg-[#090a10]/60 text-zinc-500 border-zinc-900 hover:text-zinc-400"
                 }`}
                 title="Toggle Neva Live Multi-Agent Monitor streams in right panel"
               >
                 {activeConversation?.status === "running" ? (
-                  <Activity className="w-2.5 h-2.5 shrink-0 text-cyan-400 animate-pulse" />
+                  <Activity className="w-2.5 h-2.5 shrink-0 text-cyan-404 animate-pulse" />
                 ) : (
                   <svg className="w-2.5 h-2.5 shrink-0 text-zinc-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
                 )}
@@ -2275,10 +2247,10 @@ export default function ChatCockpit({ setCurrentRoute }: ChatCockpitProps) {
               <button 
                 type="button"
                 onClick={() => setDeepThinkSearchActive(!deepThinkSearchActive)}
-                className={`text-[7.5px] font-mono tracking-wider font-extrabold uppercase rounded p-1 select-none leading-none transition-all cursor-pointer flex items-center gap-1.5 border ${
+                className={`text-[7.5px] font-mono tracking-wider font-extrabold uppercase rounded p-1 select-none leading-none transition-all cursor-pointer flex items-center gap-1.5 border shrink-0 ${
                   deepThinkSearchActive 
                     ? "bg-amber-950/40 text-amber-400 border-amber-800/30 shadow-[0_0_8px_rgba(245,158,11,0.2)] ring-1 ring-amber-500/10" 
-                    : "bg-[#090a10]/60 text-zinc-500 border-zinc-900 hover:text-zinc-400 hover:border-zinc-805"
+                    : "bg-[#090a10]/60 text-zinc-500 border-zinc-900 hover:text-zinc-400"
                 }`}
                 title="Toggle AI DeepThink Search"
               >
@@ -2286,6 +2258,52 @@ export default function ChatCockpit({ setCurrentRoute }: ChatCockpitProps) {
                 <span>DeepThink</span>
                 <span className="text-[6px] font-mono bg-amber-955/45 text-amber-500 border border-amber-900/30 px-0.8 py-0.2 rounded shrink-0 font-extrabold">PRO</span>
               </button>
+            </div>
+
+            {/* Input and Send Row */}
+            <div className="flex items-end gap-2.5 min-w-0">
+              <button 
+                onClick={() => fileInputRef.current?.click()} 
+                className="p-2 hover:bg-[#161720] rounded-xl text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer shrink-0 mb-0.5"
+                title="Attach documents elements to logical workspace context"
+              >
+                <Paperclip className="w-4 h-4" />
+              </button>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileUpload}
+                className="hidden"
+                multiple
+              />
+              
+              {/* === MOBILE FIX ===: Set explicit selectable, touchable attributes, touch-manipulation */}
+              <textarea
+                id="chat-textarea-input"
+                ref={composerRef}
+                rows={1}
+                className="flex-1 bg-transparent border-none outline-none text-[11.5px] text-zinc-250 placeholder-zinc-650 font-sans resize-none py-1.5 max-h-[140px] focus:ring-0 leading-relaxed scrollbar-thin overflow-y-auto select-text touch-manipulation min-w-0"
+                style={{
+                  touchAction: "manipulation",
+                  WebkitUserSelect: "text",
+                  userSelect: "text",
+                }}
+                placeholder="Formulate logical requests, trigger analytical tools, or query verified indexing..."
+                value={composorPrompt}
+                onChange={e => {
+                  setComposorPrompt(e.target.value);
+                  if (composerRef.current) {
+                    composerRef.current.style.height = "auto";
+                    composerRef.current.style.height = `${composerRef.current.scrollHeight}px`;
+                  }
+                }}
+                onKeyDown={e => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleComposeSend();
+                  }
+                }}
+              />
 
               <button 
                 onClick={handleComposeSend} 
@@ -2308,7 +2326,7 @@ export default function ChatCockpit({ setCurrentRoute }: ChatCockpitProps) {
       {liveMonitorActive && (
         <div 
           onClick={() => setLiveMonitorActive(false)}
-          className="fixed inset-0 bg-black/80 backdrop-blur-xs z-40 lg:hidden cursor-pointer animate-fade-in"
+          className="fixed inset-0 bg-black/80 backdrop-blur-xs z-[200] lg:hidden cursor-pointer animate-fade-in"
         />
       )}
 
@@ -2317,7 +2335,7 @@ export default function ChatCockpit({ setCurrentRoute }: ChatCockpitProps) {
         <aside 
           id="neva-agent-computer-console"
           className="
-            fixed bottom-0 left-0 right-0 h-[80vh] rounded-t-3xl border-t bg-[#040507] p-4 flex flex-col justify-between z-50 transition-all duration-300 transform translate-y-0 border-zinc-850 shadow-[0_-25px_60px_-15px_rgba(0,0,0,0.9)]
+            fixed bottom-0 left-0 right-0 h-[80vh] rounded-t-3xl border-t bg-[#040507] p-4 flex flex-col justify-between z-[210] transition-all duration-300 transform translate-y-0 border-zinc-850 shadow-[0_-25px_60px_-15px_rgba(0,0,0,0.9)]
             lg:relative lg:inset-auto lg:h-full lg:w-[480px] xl:w-[580px] lg:border-l lg:border-t-0 lg:rounded-2xl lg:p-4 lg:shrink-0 lg:shadow-none
           "
         >
@@ -2630,7 +2648,7 @@ export default function ChatCockpit({ setCurrentRoute }: ChatCockpitProps) {
       {rightChatHubOpen && (
         <div 
           onClick={() => setRightChatHubOpen(false)}
-          className="fixed inset-0 bg-black/70 backdrop-blur-xs z-40 lg:hidden cursor-pointer animate-fade-in"
+          className="fixed inset-0 bg-black/70 backdrop-blur-xs z-[200] lg:hidden cursor-pointer animate-fade-in"
         />
       )}
 
@@ -2638,7 +2656,7 @@ export default function ChatCockpit({ setCurrentRoute }: ChatCockpitProps) {
       <aside 
         className={`
           /* Base mobile drawer styles */
-          fixed inset-y-3 right-3 z-50 w-76 flex flex-col justify-between bg-[#040507] border border-zinc-850 rounded-2xl p-4 transform transition-all duration-300 ease-in-out h-[calc(100%-24px)]
+          fixed inset-y-3 right-3 z-[210] w-76 flex flex-col justify-between bg-[#040507] border border-zinc-850 rounded-2xl p-4 transform transition-all duration-300 ease-in-out h-[calc(100%-24px)]
           /* Desktop layout adaptation overrides */
           lg:relative lg:inset-auto lg:z-0 lg:w-76 lg:border lg:border-zinc-900 lg:rounded-2xl lg:p-4 lg:transition-all lg:duration-300 lg:ease-in-out lg:h-full lg:shrink-0
           ${

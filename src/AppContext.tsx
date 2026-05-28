@@ -202,7 +202,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const rawId = String(activeConversation.id).trim();
     if (!rawId || rawId === "undefined" || rawId === "null" || rawId.includes("[object")) return;
 
+    let isEffectActive = true;
+
     const fetchConvDetails = async () => {
+      if (!isEffectActive) return;
+
       const targetId = String(activeConversation?.id || "").trim();
       if (!targetId || targetId === "undefined" || targetId === "null" || targetId.includes("[object")) {
         return;
@@ -216,34 +220,40 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (!resM.ok) {
           throw new Error(`HTTP error fetching messages! Status: ${resM.status}`);
         }
+        if (!isEffectActive) return;
         const messagesData = await resM.json();
+        if (!isEffectActive) return;
         try {
           setMessages(messagesData);
         } catch (err: any) {
-          console.error("setMessages rendering/state update error: ", err, err?.stack);
+          console.warn("setMessages rendering/state update error: ", err);
         }
       } catch (err: any) {
-        console.error("Fetch/parse messages API error: ", err, err?.stack);
+        console.warn("Fetch/parse messages API error: ", err?.message || err);
       }
 
       // 2. Fetch & set runs
+      if (!isEffectActive) return;
       let runsData: any[] = [];
       try {
         const resRuns = await fetch(`/api/conversations/${convId}/runs`);
         if (!resRuns.ok) {
           throw new Error(`HTTP error fetching runs! Status: ${resRuns.status}`);
         }
+        if (!isEffectActive) return;
         runsData = await resRuns.json();
+        if (!isEffectActive) return;
         try {
           setRuns(runsData);
         } catch (err: any) {
-          console.error("setRuns rendering/state update error: ", err, err?.stack);
+          console.warn("setRuns rendering/state update error: ", err);
         }
       } catch (err: any) {
-        console.error("Fetch/parse runs API error: ", err, err?.stack);
+        console.warn("Fetch/parse runs API error: ", err?.message || err);
       }
 
       // 3. Fetch & set steps
+      if (!isEffectActive) return;
       try {
         if (runsData && runsData.length > 0) {
           const latestRun = runsData[runsData.length - 1];
@@ -253,43 +263,54 @@ export function AppProvider({ children }: { children: ReactNode }) {
             if (!resSteps.ok) {
               throw new Error(`HTTP error fetching steps! Status: ${resSteps.status}`);
             }
+            if (!isEffectActive) return;
             const stepsData = await resSteps.json();
+            if (!isEffectActive) return;
             try {
               setSteps(stepsData);
             } catch (err: any) {
-              console.error("setSteps rendering/state update error: ", err, err?.stack);
+              console.warn("setSteps rendering/state update error: ", err);
             }
           } else {
-            setSteps([]);
+            if (isEffectActive) setSteps([]);
           }
         } else {
-          setSteps([]);
+          if (isEffectActive) setSteps([]);
         }
       } catch (err: any) {
-        console.error("Fetch/parse steps API error: ", err, err?.stack);
+        console.warn("Fetch/parse steps API error: ", err?.message || err);
       }
 
       // 4. Fetch & set logs
+      if (!isEffectActive) return;
       try {
         const resLogs = await fetch("/api/logs");
         if (!resLogs.ok) {
           throw new Error(`HTTP error fetching logs! Status: ${resLogs.status}`);
         }
+        if (!isEffectActive) return;
         const logsData = await resLogs.json();
+        if (!isEffectActive) return;
         try {
           setLogs(logsData);
         } catch (err: any) {
-          console.error("setLogs rendering/state update error: ", err, err?.stack);
+          console.warn("setLogs rendering/state update error: ", err);
         }
       } catch (err: any) {
-        console.error("Fetch/parse logs API error: ", err, err?.stack);
+        console.warn("Fetch/parse logs API error: ", err?.message || err);
       }
     };
 
     fetchConvDetails();
     // Poll updates every 2 seconds to capture live agent runs moving state
-    const interval = setInterval(fetchConvDetails, 2000);
-    return () => clearInterval(interval);
+    const interval = setInterval(() => {
+      if (isEffectActive) fetchConvDetails();
+    }, 2000);
+
+    return () => {
+      isEffectActive = false;
+      clearInterval(interval);
+    };
   }, [activeConversation, refreshCount]);
 
   // Actions

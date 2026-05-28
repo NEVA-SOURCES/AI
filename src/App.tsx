@@ -427,7 +427,7 @@ function MainAppShell() {
       <CommandPalette onNavigate={(route) => setCurrentRoute(route)} />
 
       {/* MOBILE SIDEBAR DRAW ENCLOSURE */}
-      <div className={`fixed inset-0 z-50 md:hidden transition-opacity duration-300 ${isMobileSidebarOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}>
+      <div className={`fixed inset-0 z-[300] md:hidden transition-opacity duration-300 ${isMobileSidebarOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}>
         {/* Backdrop overlay */}
         <div 
           className="absolute inset-0 bg-black/60 backdrop-blur-sm shadow-inner" 

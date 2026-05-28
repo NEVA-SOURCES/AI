@@ -218,3 +218,11 @@ body {
   color: #a1a1aa;
   margin: 1.25rem 0;
 }
+
+/* Prevent iOS Safari from breaking 100vh with keyboard */
+@supports (-webkit-touch-callout: none) {
+  .composer-safe-area {
+    padding-bottom: env(safe-area-inset-bottom, 20px);
+  }
+}
+
