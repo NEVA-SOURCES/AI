@@ -15,11 +15,19 @@ import AISearchEngine from "./components/AISearchEngine";
 import Markdown from "react-markdown";
 import { OpenRouterModel } from "./data/models";
 
+// === MOTION === Motion system and Hand-crafted Custom SVGs
+import { motion, AnimatePresence } from "motion/react";
+import { NevaLogo, AIBrainIcon, CodeMatrixIcon, ImageCanvasIcon, DeepThinkIcon, LiveMonitorIcon, MissionIcon, MemoryIcon } from "./components/icons/NevaIcons";
+
+function cn(...classes: any[]) {
+  return classes.filter(Boolean).join(" ");
+}
+
 // Icons
 import { 
   Command, Search, Settings, HelpCircle, ChevronLeft, ChevronRight, Menu,
   Send, Paperclip, CheckSquare, X, Play, RefreshCw, Layers, ShieldAlert, BadgeAlert, FileCode, Check, Copy, HelpCircle as QuestionIcon, Radio,
-  Star, Sparkles, ChevronDown, Zap, Brain, Globe, Image as ImageIcon
+  Star, Sparkles, ChevronDown, Zap, Brain, Globe, Image as ImageIcon, MessageSquare
 } from "lucide-react";
 
 // Parsers and Accordion components for Deep Think and Web Grounding Citations
@@ -210,6 +218,7 @@ function CodeBlock({ children, className, ...props }: { children: any, className
 function MainAppShell() {
   const { 
     activeWorkspace, 
+    workspaces,
     conversations, 
     activeConversation, 
     messages, 
@@ -235,11 +244,20 @@ function MainAppShell() {
     deleteCustomModel,
     thinkingEnabled, setThinkingEnabled,
     searchEnabled, setSearchEnabled,
+    deepThinkSearchActive, setDeepThinkSearchActive,
     liveMonitorActive, setLiveMonitorActive
   } = useApp();
 
   const [currentRoute, setCurrentRoute] = useState<string>("chat");
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
+  // === MOTION === Cursor Trail state and handlers
+  const [mousePos, setMousePos] = useState({ x: -100, y: -100 });
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => setMousePos({ x: e.clientX, y: e.clientY });
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
 
   // Command palette navigation & global event bus route dispatcher
   useEffect(() => {
@@ -419,9 +437,28 @@ function MainAppShell() {
   const activeRun = runs[runs.length - 1] || null;
 
   return (
-    <div className="flex h-screen bg-[#0d0d0d] text-[#e5e5e5] font-sans antialiased overflow-hidden relative">
+    <div className="flex h-screen bg-[#050505] text-[#e5e5e5] font-sans antialiased overflow-hidden relative">
       {/* Editorial aesthetic grid background */}
       <div className="editorial-grid-bg"></div>
+
+      {/* Cosmic background effects */}
+      <div className="cosmic-bg"></div>
+      <div className="horizon-glow"></div>
+      <div className="particle-field">
+        <div className="particle" style={{ left: '10%', top: '80%', animationDelay: '0s' }}></div>
+        <div className="particle" style={{ left: '30%', top: '90%', animationDelay: '2s' }}></div>
+        <div className="particle" style={{ left: '50%', top: '85%', animationDelay: '4s' }}></div>
+        <div className="particle" style={{ left: '70%', top: '95%', animationDelay: '1s' }}></div>
+        <div className="particle" style={{ left: '85%', top: '75%', animationDelay: '3s' }}></div>
+        <div className="particle" style={{ left: '95%', top: '90%', animationDelay: '5s' }}></div>
+      </div>
+
+      {/* === MOTION === Subtle Cursor Trail */}
+      <motion.div
+        className="fixed w-4 h-4 rounded-full bg-cyan-500/20 pointer-events-none z-[9999] blur-sm hidden md:block"
+        animate={{ x: mousePos.x - 8, y: mousePos.y - 8 }}
+        transition={{ type: "spring", stiffness: 500, damping: 28 }}
+      />
 
       {/* COMMAND PALETTE ENTRY */}
       <CommandPalette onNavigate={(route) => setCurrentRoute(route)} />
@@ -495,67 +532,233 @@ function MainAppShell() {
         <div className="flex-1 flex min-w-0 overflow-hidden relative">
           
           <main className={`flex-1 flex flex-col min-w-0 ${currentRoute === "chat" ? "overflow-hidden p-3" : "overflow-y-auto p-6"} scrollbar-thin`}>
-            
-            {/* VIEW ROUTE 1: DASHBOARD HOME */}
+            {/* === MOTION === Page Transition */}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentRoute}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+                className="flex-1 flex flex-col min-w-0"
+              >
+                
+                {/* VIEW ROUTE 1: DASHBOARD HOME */}
             {currentRoute === "dashboard" && (
-              <div className="space-y-6 animate-fade-in max-w-7xl mx-auto w-full">
-                {/* HUGE EDITORIAL TYPOGRAPHIC HEADER */}
-                <section className="flex flex-col justify-end pt-4 pb-8 border-b border-white/10">
-                  <div className="flex items-center gap-8 mb-4">
-                    <span className="text-[10px] tracking-[0.4em] font-bold text-white uppercase">Primary Directive</span>
-                    <div className="h-[1px] w-12 bg-white/30"></div>
-                  </div>
-                  <h1 className="text-5xl sm:text-7xl md:text-8xl leading-none font-serif font-bold tracking-tight text-white mb-6 uppercase">
-                    MAKE NO<br/>MISTAKE
-                  </h1>
-                  <p className="text-sm font-body italic text-[#a3a3a3] max-w-2xl leading-relaxed mb-4">
-                    "Precision is the byproduct of intentionality. In the vacuum of haste, errors are born. We build for the vacuum of high-integrity workloads."
-                  </p>
-                  <p className="text-xs text-[#737373] tracking-[0.15em] uppercase">
-                    NEVA ACTIVE KERNEL OS · COORDINATING 15 PRE-SEEDED CORE STRATEGIC NODES.
-                  </p>
-                </section>
-
-                {/* STATS MATRIX */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
-                  {[
-                    { label: "Missions Archive", val: conversations.length, sub: "System threads active" },
-                    { label: "Memories Lodged", val: stats.memoriesRegistered + 12, sub: "Long-term associations" },
-                    { label: "Tactical Skills", val: `${stats.skillsAvailable} Seeded`, sub: "Engineering, writing, AI" },
-                    { label: "System Nodes", val: "15 Profiles", sub: "Autonomous agencies" },
-                  ].map((st, i) => (
-                    <div key={i} className="border border-white/10 bg-[#121212]/30 p-4 rounded-none transition-all hover:bg-[#121212]/60">
-                      <div className="text-[9px] font-sans font-bold uppercase tracking-[0.2em] text-[#737373] mb-2">{st.label}</div>
-                      <div className="font-serif text-3xl font-bold italic text-white">{st.val}</div>
-                      <div className="text-[10px] text-[#a3a3a3] mt-1 font-body leading-tight">{st.sub}</div>
-                    </div>
+              <div id="neva-dashboard-container" className="h-full overflow-y-auto p-4 md:p-8 relative">
+                {/* Animated background particles */}
+                <div className="fixed inset-0 pointer-events-none overflow-hidden">
+                  {[...Array(6)].map((_, i) => (
+                    <div 
+                      key={i} 
+                      className="absolute w-1 h-1 bg-cyan-500/20 rounded-full animate-particle"
+                      style={{ 
+                        left: `${15 + i * 15}%`, 
+                        top: `${20 + (i % 3) * 25}%`, 
+                        animationDelay: `${i * 1.2}s` 
+                      }} 
+                    />
                   ))}
                 </div>
-
-                {/* VISUAL PROFILES GALLERY HORIZONTAL SCROLL */}
-                <div className="pt-2">
-                  <div className="text-[10px] font-sans font-bold tracking-[0.2em] uppercase text-[#737373] block mb-3 border-b border-white/5 pb-1">DIRECTORY OF SYSTEM NODES</div>
-                  <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin">
-                    {profiles.map(p => (
-                      <div 
-                        key={p.id}
-                        onClick={() => setCurrentRoute("chat")}
-                        className="p-4 border border-white/10 bg-[#121212] rounded-none min-w-[180px] cursor-pointer hover:border-white/30 hover:bg-[#161616] transition-all flex flex-col justify-between"
-                      >
-                        <div className="flex justify-between items-center">
-                          <span className="text-xl">{p.icon}</span>
-                          <span className="text-[9px] font-mono uppercase bg-white/5 text-[#a3a3a3] px-1.5 py-0.5 border border-white/10 rounded-none">LVL {p.autonomyLevel}</span>
-                        </div>
-                        <div className="text-xs font-bold text-white mt-4 font-serif italic truncate">{p.name}</div>
-                        <div className="text-[10px] text-[#737373] mt-1 font-body line-clamp-2 leading-relaxed">{p.description}</div>
+                
+                {/* HERO with ambient gold & cyan glow background and serif headers */}
+                <motion.div 
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                  className="relative mb-8 overflow-hidden rounded-2xl border border-white/[0.03] bg-[#0a0a0a] p-6 md:p-8"
+                >
+                  {/* Ambient glow behind text */}
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-gradient-to-r from-[rgba(197,168,128,0.06)] to-[rgba(0,212,255,0.04)] blur-3xl pointer-events-none" />
+                  
+                  <div className="relative z-10 flex items-center justify-between mb-4 flex-wrap gap-2">
+                    <div className="flex items-center gap-3">
+                      <NevaLogo className="w-10 h-10" animate />
+                      <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        <span className="text-[10px] font-mono text-emerald-400 tracking-widest uppercase">System Online</span>
                       </div>
+                    </div>
+                    <span className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest">AETHER CORE KERNEL</span>
+                  </div>
+                  
+                  <h1 className="relative z-10 headline-serif text-5xl md:text-7xl text-[#f5f5f5] mb-3">
+                    NEVA<span className="text-[#c5a880]">.OS</span>
+                  </h1>
+                  
+                  <p className="relative z-10 body-elegant text-sm text-[#a3a3a3] max-w-lg leading-relaxed">
+                    Precision orchestration kernel. Coordinating {profiles.length} autonomous agencies 
+                    across {workspaces.length} workspaces with neural-grade integrity.
+                  </p>
+                  
+                  {/* Live metrics with count-up animation */}
+                  <div className="relative z-10 flex flex-wrap items-center gap-6 mt-6 pt-6 border-t border-white/[0.04]">
+                    {[
+                      { val: conversations.length, label: "Active Missions", color: "cyan" },
+                      { val: messages.length, label: "Messages", color: "purple" },
+                      { val: stats.totalTokens, label: "Tokens", color: "amber" },
+                      { val: "99.9%", label: "Uptime", color: "emerald" },
+                    ].map((stat, i) => (
+                      <motion.div 
+                        key={i}
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.3 + i * 0.1, duration: 0.5 }}
+                        className="text-center min-w-[100px]"
+                      >
+                        <div className={cn("text-2xl font-bold font-mono", 
+                          stat.color === "cyan" && "text-[#00d4ff]",
+                          stat.color === "purple" && "text-[#a78bfa]",
+                          stat.color === "amber" && "text-[#c5a880]",
+                          stat.color === "emerald" && "text-[#10b981]"
+                        )}>
+                          {stat.val}
+                        </div>
+                        <div className="text-[10px] text-[#525252] uppercase tracking-wider mt-1">{stat.label}</div>
+                      </motion.div>
                     ))}
                   </div>
+                </motion.div>
+                
+                {/* BENTO GRID with hover motion */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                  {[
+                    { icon: MissionIcon, label: "Missions", val: conversations.length, sub: "Active threads", color: "cyan", route: "chat" },
+                    { icon: MemoryIcon, label: "Memories", val: stats.memoriesRegistered + 12, sub: "Neural associations", color: "purple", route: "memory" },
+                    { icon: CodeMatrixIcon, label: "Skills", val: `${stats.skillsAvailable} Seeded`, sub: "Engineering & AI", color: "amber", route: "skills" },
+                    { icon: AIBrainIcon, label: "Agents", val: `${profiles.length} Nodes`, sub: "Autonomous agencies", color: "emerald", route: "settings" },
+                  ].map((card, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.5 + i * 0.1, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                      whileHover={{ y: -6, scale: 1.03, transition: { type: "spring", stiffness: 400 } }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => setCurrentRoute(card.route)}
+                      className={cn(
+                        "group relative overflow-hidden rounded-xl border p-4 cursor-pointer",
+                        "bg-[#0f0f0f] border-white/[0.03] hover:border-[rgba(197,168,128,0.1)]",
+                        "transition-shadow duration-300"
+                      )}
+                    >
+                      {/* Hover glow */}
+                      <div className={cn(
+                        "absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500",
+                        card.color === "cyan" && "bg-gradient-to-br from-[#00d4ff]/10 to-transparent",
+                        card.color === "purple" && "bg-gradient-to-br from-[#a78bfa]/10 to-transparent",
+                        card.color === "amber" && "bg-gradient-to-br from-[#c5a880]/10 to-transparent",
+                        card.color === "emerald" && "bg-gradient-to-br from-[#10b981]/10 to-transparent",
+                      )} />
+                      
+                      <div className="relative z-10 flex flex-col h-full justify-between">
+                        <div>
+                          <div className="flex items-center justify-between mb-3">
+                            <card.icon className={cn("w-5 h-5",
+                              card.color === "cyan" && "text-[#00d4ff]",
+                              card.color === "purple" && "text-[#a78bfa]",
+                              card.color === "amber" && "text-[#c5a880]",
+                              card.color === "emerald" && "text-[#10b981]",
+                            )} />
+                            <motion.div 
+                              className={cn("w-1.5 h-1.5 rounded-full",
+                                card.color === "cyan" && "bg-[#00d4ff]",
+                                card.color === "purple" && "bg-[#a78bfa]",
+                                card.color === "amber" && "bg-[#c5a880]",
+                                card.color === "emerald" && "bg-[#10b981]",
+                              )}
+                              animate={{ scale: [1, 1.3, 1] }}
+                              transition={{ duration: 2, repeat: Infinity }}
+                            />
+                          </div>
+                          <div className="text-3xl font-bold text-white mb-1 font-mono">{card.val}</div>
+                        </div>
+                        <div>
+                          <div className="text-[11px] text-[#a3a3a3] font-medium">{card.label}</div>
+                          <div className="text-[10px] text-[#525252] mt-0.5">{card.sub}</div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
                 </div>
+                
+                {/* PROFILE GALLERY with horizontal scroll and motion */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.9 }}
+                  className="mb-8"
+                >
+                  <h3 className="text-[10px] font-mono text-zinc-600 uppercase tracking-[0.2em] mb-3 font-bold">
+                    Directory of System Nodes
+                  </h3>
+                  <div className="flex gap-3 overflow-x-auto scrollbar-thin pb-2">
+                    {profiles.map((p, i) => (
+                      <motion.div
+                        key={p.id}
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.1 + i * 0.05 }}
+                        whileHover={{ y: -4, transition: { type: "spring" } }}
+                        onClick={() => setCurrentRoute("chat")}
+                        className="flex-shrink-0 w-[200px] p-4 border border-white/[0.03] bg-[#0c0c0e] rounded-xl cursor-pointer hover:border-[rgba(197,168,128,0.15)] hover:bg-[#111113] transition-all group"
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="w-8 h-8 rounded-lg bg-[rgba(0,212,255,0.06)] flex items-center justify-center text-[#00d4ff] font-mono text-xs font-bold">
+                            {p.icon}
+                          </div>
+                          <span className="text-[10px] text-[#a3a3a3] font-mono">LVL {p.autonomyLevel}</span>
+                        </div>
+                        <div className="text-sm font-medium text-zinc-300 mb-1">{p.name}</div>
+                        <div className="text-[10px] text-zinc-500 leading-snug line-clamp-2">{p.description}</div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </motion.div>
+                
+                {/* QUICK ACTIONS */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 1.1 }}
+                  className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8"
+                >
+                  {[
+                    { icon: MessageSquare, label: "New Chat", color: "cyan", route: "chat" },
+                    { icon: DeepThinkIcon, label: "DeepThink", color: "amber", route: "chat", action: () => setDeepThinkSearchActive(true) },
+                    { icon: LiveMonitorIcon, label: "Monitor", color: "emerald", route: "chat", action: () => setLiveMonitorActive(true) },
+                    { icon: ImageCanvasIcon, label: "Images", color: "purple", route: "chat" }, // route to chat where Image is generated/processed
+                  ].map((item, i) => (
+                    <motion.button
+                      key={i}
+                      whileHover={{ scale: 1.05, y: -2 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => {
+                        if (item.action) item.action();
+                        setCurrentRoute(item.route);
+                      }}
+                      className={cn(
+                        "flex items-center gap-3 p-3 rounded-xl border transition-all text-left w-full cursor-pointer focus:outline-none",
+                        item.color === "cyan" && "border-[rgba(0,212,255,0.15)] bg-[rgba(0,212,255,0.05)] hover:bg-[rgba(0,212,255,0.08)] hover:shadow-[0_0_20px_rgba(0,212,255,0.08)]",
+                        item.color === "amber" && "border-[rgba(197,168,128,0.15)] bg-[rgba(197,168,128,0.05)] hover:bg-[rgba(197,168,128,0.08)] hover:shadow-[0_0_20px_rgba(197,168,128,0.08)]",
+                        item.color === "emerald" && "border-[rgba(16,185,129,0.15)] bg-[rgba(16,185,129,0.05)] hover:bg-[rgba(16,185,129,0.08)] hover:shadow-[0_0_20px_rgba(16,185,129,0.08)]",
+                        item.color === "purple" && "border-[rgba(168,85,247,0.15)] bg-[rgba(168,85,247,0.05)] hover:bg-[rgba(168,85,247,0.08)] hover:shadow-[0_0_20px_rgba(168,85,247,0.08)]",
+                      )}
+                    >
+                      <item.icon className={cn("w-5 h-5 flex-shrink-0",
+                        item.color === "cyan" && "text-[#00d4ff]",
+                        item.color === "amber" && "text-[#c5a880]",
+                        item.color === "emerald" && "text-[#10b981]",
+                        item.color === "purple" && "text-[#a78bfa]",
+                      )} />
+                      <span className="text-sm font-medium text-zinc-200">{item.label}</span>
+                    </motion.button>
+                  ))}
+                </motion.div>
 
                 {/* OUTPUTS GALLERY PREVIEWS */}
-                <div className="pt-2 border-t border-white/10">
-                  <div className="text-[10px] font-sans font-bold tracking-[0.2em] uppercase text-[#737373] block mb-3">RECENTLY COMPILED EXECUTION BRIEFS</div>
+                <div className="pt-2 border-t border-white/5">
+                  <div className="text-[10px] font-sans font-bold tracking-[0.2em] uppercase text-zinc-500 block mb-3">RECENTLY COMPILED EXECUTION BRIEFS</div>
                   <OutputStudio />
                 </div>
               </div>
@@ -882,7 +1085,9 @@ function MainAppShell() {
               </div>
             )}
 
-          </main>
+          </motion.div>
+        </AnimatePresence>
+      </main>
 
           {/* COLLAPSIBLE RIGHT SIDEBAR RAIL */}
           {!isInspectorCollapsed && (

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useApp } from "../AppContext";
+import { motion, AnimatePresence } from "motion/react";
 import { 
   Send, Paperclip, CheckSquare, X, Settings, Layers, ShieldAlert, Search,
   FileCode, Check, Copy, Radio, Sparkles, ChevronDown, Brain, Globe, Copy as CopyIcon,
@@ -2195,7 +2196,14 @@ export default function ChatCockpit({ setCurrentRoute }: ChatCockpitProps) {
 
           {/* Composer area with custom actions row nested */}
           {/* === MOBILE FIX ===: Add .composer-safe-area and ensure interactive layout */}
-          <div className="flex flex-col gap-2.5 bg-[#0c0d12] border border-zinc-850 rounded-2xl p-2.5 focus-within:border-cyan-500/30 transition-all shadow-inner relative z-[130] composer-safe-area select-text">
+          <motion.div 
+            whileHover={{ scale: 1.01, boxShadow: "0 0 25px rgba(6, 182, 212, 0.08)" }}
+            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+            className={cn(
+              "flex flex-col gap-2.5 bg-[#0c0d12] border border-zinc-850 rounded-2xl p-2.5 focus-within:border-cyan-500/40 focus-within:shadow-[0_0_20px_rgba(6,182,212,0.06)] transition-all shadow-inner relative z-[130] composer-safe-area select-text",
+              activeConversation?.status === "running" && "animate-shimmer border-cyan-500/25 shadow-[0_0_25px_rgba(6,182,212,0.15)] bg-gradient-to-r from-[#0c0d12] via-[#141722] to-[#0c0d12] bg-[length:200%_100%]"
+            )}
+          >
             {/* Toolbar row with scrolling tools */}
             <div className="flex items-center gap-2 pb-2 border-b border-zinc-900/50 overflow-x-auto scrollbar-none justify-start select-none">
               <button
@@ -2318,7 +2326,7 @@ export default function ChatCockpit({ setCurrentRoute }: ChatCockpitProps) {
                 <Send className="w-3.5 h-3.5 stroke-[2.5]" />
               </button>
             </div>
-          </div>
+          </motion.div>
         </div>
       </section>
 

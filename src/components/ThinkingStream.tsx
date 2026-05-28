@@ -89,10 +89,12 @@ export default function ThinkingStream({ steps = [], isStreaming, onStepClick }:
 
       {/* Steps List */}
       <div className="relative pl-6 space-y-4">
-        {/* The Timeline Vertical Line */}
+        {/* The Timeline Vertical Line with subtle neon glow and anim flow */}
         <div 
           className={`absolute left-[11px] top-2 bottom-2 w-[2px] rounded-full transition-all duration-700 ${
-            isStreaming ? "bg-cyan-400/30" : "bg-white/10"
+            isStreaming 
+              ? "bg-gradient-to-b from-cyan-400 via-purple-500 to-transparent bg-[length:100%_200%] animate-gradient-shift shadow-[0_0_10px_rgba(6,182,212,0.4)]" 
+              : "bg-white/10"
           }`} 
         />
 
@@ -129,13 +131,16 @@ export default function ThinkingStream({ steps = [], isStreaming, onStepClick }:
                   >
                     {/* Circle icon with reactive state and glowing ring effects */}
                     <div className="relative flex items-center justify-center shrink-0 mt-0.5 z-10">
+                      {isRunning && (
+                        <div className="absolute inset-0 -m-1.5 rounded-full border border-cyan-400/40 animate-spin border-dashed duration-3000 pointer-events-none" />
+                      )}
                       <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold transition-all duration-300 ${
                         isRunning 
-                          ? "bg-cyan-950/40 border border-cyan-400 text-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.5)] animate-pulse"
+                          ? "bg-cyan-950/40 border border-cyan-400 text-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.6)] animate-pulse"
                           : isDone
-                            ? "bg-emerald-950/30 border border-emerald-500/40 text-emerald-400"
+                            ? "bg-emerald-950/30 border border-emerald-500/45 text-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.2)]"
                             : isFailed
-                              ? "bg-rose-950/30 border border-rose-500/40 text-rose-400"
+                              ? "bg-rose-950/30 border border-rose-500/45 text-rose-400 shadow-[0_0_8px_rgba(239,68,68,0.2)]"
                               : "bg-zinc-900 border border-zinc-800 text-zinc-500"
                       }`}>
                         {isDone ? (

@@ -7,6 +7,10 @@ import {
   Trash2, Pencil, Check, X, Sparkles, Image, Brain, Search
 } from "lucide-react";
 
+// === MOTION === Hand-crafted SVGs and animations
+import { motion } from "motion/react";
+import { NevaLogo, MissionIcon, MemoryIcon, CodeMatrixIcon, AIBrainIcon, DeepThinkIcon, LiveMonitorIcon, ImageCanvasIcon } from "./icons/NevaIcons";
+
 // Local classnames utility for conditional Tailwind classes
 function cn(...classes: any[]) {
   return classes.filter(Boolean).join(" ");
@@ -65,18 +69,22 @@ export default function Sidebar({
   };
 
   return (
-    <div className="w-60 h-full bg-[#0c0c0e] border-r border-zinc-850/60 flex flex-col justify-between font-sans select-none overflow-y-auto scrollbar-thin">
+    <div className="w-60 h-full bg-[#050505] border-r border-white/[0.04] flex flex-col justify-between font-sans select-none overflow-y-auto scrollbar-thin">
       {/* BRAND & WORKSPACE HEAD */}
       <div>
-        <div className="p-4 flex items-center justify-between border-b border-zinc-850/60 bg-zinc-950/40 backdrop-blur-sm">
+        <div className="p-4 flex items-center justify-between border-b border-white/[0.04] bg-[#0a0a0a]/40 backdrop-blur-sm">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg border border-cyan-500/20 flex items-center justify-center bg-cyan-500/5 relative shrink-0">
-              <span className="text-cyan-400 font-serif italic text-base font-bold">N</span>
-              <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-cyan-500 glow-pulse-cyan"></span>
-            </div>
+            <motion.div 
+              whileHover={{ rotate: 90, scale: 1.1 }}
+              transition={{ type: "spring", stiffness: 300, damping: 15 }}
+              className="w-8 h-8 rounded-lg border border-[rgba(0,212,255,0.15)] flex items-center justify-center bg-[rgba(0,212,255,0.05)] relative shrink-0 cursor-pointer"
+            >
+              <NevaLogo className="w-6 h-6" animate />
+              <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-[#00d4ff] glow-pulse-cyan"></span>
+            </motion.div>
             <div>
               <div className="text-xs tracking-[0.2em] font-sans font-bold text-zinc-100 uppercase flex items-center gap-1 leading-none">
-                NEVA.OS <span className="text-[8px] font-mono opacity-80 text-cyan-400 bg-cyan-400/15 border border-cyan-500/10 px-1 rounded">V01</span>
+                NEVA.OS <span className="text-[8px] font-mono opacity-80 text-[#00d4ff] bg-[#00d4ff]/15 border border-[#00d4ff]/10 px-1 rounded animate-pulse font-extrabold">V01</span>
               </div>
               <div className="text-[9px] font-mono text-zinc-500 mt-1 uppercase tracking-[0.1em]">PRECISION ARCHIVE</div>
             </div>
@@ -85,7 +93,7 @@ export default function Sidebar({
             <button
               type="button"
               onClick={onClose}
-              className="md:hidden text-zinc-500 hover:text-white p-1 hover:bg-zinc-900 rounded-lg transition-all cursor-pointer"
+              className="md:hidden text-zinc-500 hover:text-white p-1 hover:bg-[#0f0f0f] rounded-lg transition-all cursor-pointer"
               title="Close Panel"
             >
               <X className="w-4 h-4" />
@@ -98,17 +106,17 @@ export default function Sidebar({
           <button 
             id="workspace-selector-btn"
             onClick={() => setWorkspaceDropdownOpen(!workspaceDropdownOpen)}
-            className="w-full flex items-center justify-between p-2 rounded-xl bg-zinc-950/60 border border-zinc-850/50 hover:border-zinc-700/80 text-left transition-all duration-200"
+            className="w-full flex items-center justify-between p-2 rounded-xl bg-[#0a0a0a] border border-white/[0.04] hover:border-[rgba(197,168,128,0.15)] text-left transition-all duration-200"
           >
             <div className="flex items-center gap-2">
-              <span className="text-xs p-1 bg-zinc-900 border border-zinc-850/60 rounded">{activeWorkspace?.icon || "⚡"}</span>
+              <span className="text-xs p-1 bg-[#111111] border border-white/[0.03] rounded">{activeWorkspace?.icon || "⚡"}</span>
               <span className="text-[11px] font-medium text-zinc-200 truncate max-w-[120px]">{activeWorkspace?.name}</span>
             </div>
             <ChevronDown className="w-3.5 h-3.5 text-zinc-500" />
           </button>
 
           {workspaceDropdownOpen && (
-            <div className="absolute top-12 left-3 right-3 bg-zinc-950 border border-zinc-850 rounded-xl shadow-2xl z-50 p-1.5 backdrop-blur-xl animate-fade-in">
+            <div className="absolute top-12 left-3 right-3 bg-[#0a0a0a] border border-white/[0.04] rounded-xl shadow-2xl z-50 p-1.5 backdrop-blur-xl animate-fade-in">
               <div className="text-[8px] uppercase font-mono text-zinc-500 px-2 py-1 tracking-widest border-b border-zinc-900 mb-1">Switch System Node</div>
               {workspaces.map(w => (
                 <button
@@ -118,7 +126,9 @@ export default function Sidebar({
                     setWorkspaceDropdownOpen(false);
                   }}
                   className={`w-full text-left px-2 py-1.5 rounded-lg text-[11px] transition-colors flex items-center gap-2 ${
-                    activeWorkspace?.id === w.id ? "bg-cyan-500/10 text-cyan-400 font-bold border border-cyan-500/10" : "hover:bg-zinc-900/50 text-zinc-400"
+                    activeWorkspace?.id === w.id 
+                      ? "bg-[rgba(197,168,128,0.08)] text-[#c5a880] font-bold border border-[rgba(197,168,128,0.15)]" 
+                      : "hover:bg-[rgba(255,255,255,0.02)] text-[#525252] hover:text-[#a3a3a3]"
                   }`}
                 >
                   <span>{w.icon}</span>
@@ -135,13 +145,13 @@ export default function Sidebar({
             <button 
               id="new-mission-btn"
               onClick={() => setIsCreating(true)}
-              className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-gradient-to-r from-cyan-500/10 via-orange-500/5 to-transparent border border-cyan-500/25 hover:border-cyan-500/55 text-[10px] font-sans font-bold uppercase tracking-[0.15em] text-zinc-100 shadow-sm hover:shadow-[0_0_15px_rgba(6,182,212,0.12)] transition-all duration-300 hover:bg-cyan-500/10 cursor-pointer"
+              className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-gradient-to-r from-[rgba(197,168,128,0.12)] via-transparent to-transparent border border-[rgba(197,168,128,0.2)] hover:border-[rgba(197,168,128,0.45)] text-[10px] font-sans font-bold uppercase tracking-[0.15em] text-[#c5a880] shadow-sm hover:shadow-[0_0_15px_rgba(197,168,128,0.12)] transition-all duration-300 hover:bg-[rgba(197,168,128,0.06)] cursor-pointer"
             >
-              <Plus className="w-3.5 h-3.5 text-cyan-400" />
+              <Plus className="w-3.5 h-3.5 text-[#c5a880]" />
               New Chat Session
             </button>
           ) : (
-            <form onSubmit={submitNewMission} className="space-y-2.5 p-3.5 bg-zinc-950/90 border border-zinc-850 rounded-xl shadow-xl animate-fade-in">
+            <form onSubmit={submitNewMission} className="space-y-2.5 p-3.5 bg-[#0a0a0a] border border-white/[0.04] rounded-xl shadow-xl animate-fade-in">
               <div className="text-[8px] font-mono text-zinc-500 uppercase tracking-wider font-bold">New Mission Name</div>
               <input
                 id="new-chat-input"
@@ -150,7 +160,7 @@ export default function Sidebar({
                 value={newTitle}
                 onChange={(e) => setNewTitle(e.target.value)}
                 placeholder="e.g. Cognitive Debugger"
-                className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-zinc-650 focus:outline-none focus:border-cyan-500/50 font-mono transition-all"
+                className="w-full bg-[#111111] border border-white/[0.05] rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-[rgba(197,168,128,0.3)] font-mono transition-all"
               />
               <div className="flex items-center gap-2 justify-end">
                 <button
@@ -165,7 +175,7 @@ export default function Sidebar({
                 </button>
                 <button
                   type="submit"
-                  className="px-3 py-1.5 text-[9px] uppercase font-mono bg-cyan-500 hover:bg-cyan-400 text-white font-bold transition-all rounded-md shadow-md active:scale-95"
+                  className="px-3 py-1.5 text-[9px] uppercase font-mono bg-[#c5a880] hover:bg-[#d6bc98] text-black font-bold transition-all rounded-md shadow-md active:scale-95"
                 >
                   Launch
                 </button>
@@ -176,42 +186,50 @@ export default function Sidebar({
 
         {/* NAVIGATION LINKS */}
         <div className="px-2 py-2 text-[#a3a3a3]">
-          <div className="text-[9px] uppercase font-mono text-zinc-600 px-3 py-1.5 tracking-[0.2em] border-b border-zinc-900 mb-1.5 font-bold">SYSTEM CONTROLS</div>
+          <div className="text-[10px] text-[#404040] tracking-[0.2em] uppercase px-3 py-1.5 border-b border-white/[0.03] mb-1.5 font-bold">SYSTEM CONTROLS</div>
 
-          <button 
+          <motion.button 
+            whileHover={{ x: 4, backgroundColor: "rgba(255,255,255,0.02)" }}
+            whileTap={{ scale: 0.98 }}
             onClick={() => onNavigate("dashboard")} 
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] transition-all hover:bg-zinc-900 text-left text-zinc-400 hover:text-zinc-100 group cursor-pointer"
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] transition-all text-left text-zinc-400 hover:text-zinc-100 group cursor-pointer"
           >
-            <LayoutDashboard className="w-3.5 h-3.5 text-zinc-500 group-hover:text-cyan-400 transition-colors" />
+            <LayoutDashboard className="w-3.5 h-3.5 text-zinc-500 group-hover:text-[#00d4ff] transition-colors" />
             <span className="font-medium">OS Dashboard</span>
-          </button>
+          </motion.button>
 
-          <button 
+          <motion.button 
+            whileHover={{ x: 4, backgroundColor: "rgba(255,255,255,0.02)" }}
+            whileTap={{ scale: 0.98 }}
             onClick={() => onNavigate("chat")} 
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] transition-all hover:bg-zinc-900 text-left text-zinc-400 hover:text-zinc-100 group cursor-pointer"
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] transition-all text-left text-zinc-400 hover:text-zinc-100 group cursor-pointer"
           >
             <Radio className="w-3.5 h-3.5 text-zinc-500 group-hover:text-emerald-400 transition-colors" />
             <span className="font-medium">Active Mission</span>
-          </button>
+          </motion.button>
 
-          <button 
+          <motion.button 
+            whileHover={{ x: 4, backgroundColor: "rgba(255,255,255,0.02)" }}
+            whileTap={{ scale: 0.98 }}
             onClick={() => onNavigate("prompt")} 
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] transition-all hover:bg-zinc-900 text-left text-zinc-400 hover:text-zinc-100 group cursor-pointer"
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] transition-all text-left text-zinc-400 hover:text-zinc-100 group cursor-pointer"
           >
-            <Sparkles className="w-3.5 h-3.5 text-amber-400 group-hover:animate-pulse" />
-            <span className="font-medium text-zinc-200 group-hover:text-zinc-100">Prompt Architect</span>
-            <span className="text-[8px] font-mono bg-amber-400/10 text-amber-400 border border-amber-450/20 px-1.5 py-0.2 rounded font-bold ml-auto">PRO</span>
-          </button>
+            <Sparkles className="w-3.5 h-3.5 text-[#c5a880] group-hover:animate-pulse" />
+            <span className="font-medium text-zinc-200 group-hover:text-zinc-100 font-bold">Prompt Architect</span>
+            <span className="text-[8px] font-mono bg-[rgba(197,168,128,0.15)] text-[#c5a880] border border-[rgba(197,168,128,0.2)] px-1.5 py-0.2 rounded font-extrabold ml-auto">PRO</span>
+          </motion.button>
 
-          <button 
+          <motion.button 
             id="nav-images-btn"
+            whileHover={{ x: 4, backgroundColor: "rgba(255,255,255,0.02)" }}
+            whileTap={{ scale: 0.98 }}
             onClick={() => onNavigate("images")} 
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] transition-all hover:bg-zinc-900 text-left text-zinc-400 hover:text-zinc-100 group cursor-pointer"
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] transition-all text-left text-zinc-400 hover:text-zinc-100 group cursor-pointer"
           >
             <Image className="w-3.5 h-3.5 text-orange-400 group-hover:animate-bounce" />
             <span className="font-medium text-zinc-200 group-hover:text-zinc-100">Image Studio</span>
-            <span className="text-[8px] font-mono bg-orange-500/10 text-orange-400 border border-orange-500/20 px-1.5 py-0.2 rounded font-bold ml-auto flex items-center gap-1">NEW</span>
-          </button>
+            <span className="text-[8px] font-mono bg-orange-500/10 text-orange-400 border border-orange-500/10 px-1.5 py-0.2 rounded font-bold ml-auto flex items-center gap-1">NEW</span>
+          </motion.button>
 
           {/* COGNITIVE VECTORS SECTION */}
           <div className="mt-6 border-t border-zinc-900 pt-4">
