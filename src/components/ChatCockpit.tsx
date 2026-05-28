@@ -3,12 +3,18 @@ import { useApp } from "../AppContext";
 import { 
   Send, Paperclip, CheckSquare, X, Settings, Layers, ShieldAlert,
   FileCode, Check, Copy, Radio, Sparkles, ChevronDown, Brain, Globe, Copy as CopyIcon,
-  Cpu, Terminal, Activity, Loader2, Link2, Download, Archive, Eye, EyeOff
+  Cpu, Terminal, Activity, Loader2, Link2, Download, Archive, Eye, EyeOff,
+  RefreshCw, Server, Sliders
 } from "lucide-react";
 import Markdown from "react-markdown";
 import JSZip from "jszip";
 import { downloadRawFile } from "../utils/fileExporter";
 import ThinkingStream from "./ThinkingStream";
+
+// Classnames merger micro-utility
+function cn(...classes: any[]) {
+  return classes.filter(Boolean).join(" ");
+}
 
 // Markdown helper parsers
 function parseMessageContent(content: string) {
@@ -1234,7 +1240,10 @@ export default function ChatCockpit({ setCurrentRoute }: ChatCockpitProps) {
     missionModeActive, setMissionModeActive,
     allModels,
     thinkingEnabled, setThinkingEnabled,
-    searchEnabled, setSearchEnabled
+    searchEnabled, setSearchEnabled,
+    liveMonitorActive, setLiveMonitorActive,
+    deepThinkSearchActive, setDeepThinkSearchActive,
+    cancelRun
   } = useApp();
 
   const [composorPrompt, setComposorPrompt] = useState("");
@@ -1246,6 +1255,7 @@ export default function ChatCockpit({ setCurrentRoute }: ChatCockpitProps) {
   const [modelSearch, setModelSearch] = useState("");
   const [modelTypeFilter, setModelTypeFilter] = useState<"all" | "logic" | "basic">("all");
   const [hiddenThinkingMsgIds, setHiddenThinkingMsgIds] = useState<Record<string, boolean>>({});
+  const [selectedStepIndex, setSelectedStepIndex] = useState<number | null>(null);
 
   // Set default state based on viewport width on mount
   useEffect(() => {
@@ -1504,40 +1514,42 @@ export default function ChatCockpit({ setCurrentRoute }: ChatCockpitProps) {
             
             {/* Deep Think */}
             <button
-              onClick={() => setThinkingEnabled(!thinkingEnabled)}
+              onClick={() => !deepThinkSearchActive && setThinkingEnabled(!thinkingEnabled)}
+              disabled={deepThinkSearchActive}
               className={`w-full p-2.5 rounded-xl text-left border transition-all flex items-center justify-between cursor-pointer select-none ${
-                thinkingEnabled 
+                (thinkingEnabled || deepThinkSearchActive)
                   ? "bg-purple-950/20 border-purple-500/20 text-purple-300" 
                   : "bg-transparent border-zinc-900 text-zinc-500 hover:text-zinc-400 hover:border-zinc-805"
-              }`}
+              } ${deepThinkSearchActive ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               <div className="flex items-center gap-2 min-w-0">
-                <Brain className={`w-3.5 h-3.5 shrink-0 ${thinkingEnabled ? "text-purple-400 animate-pulse" : "text-zinc-650"}`} />
+                <Brain className={`w-3.5 h-3.5 shrink-0 ${(thinkingEnabled || deepThinkSearchActive) ? "text-purple-400 animate-pulse" : "text-zinc-650"}`} />
                 <div className="leading-tight text-left min-w-0">
                   <span className="text-[10px] font-bold block">Orchestrated Thinking</span>
                   <span className="text-[7.5px] font-mono mt-0.5 block truncate text-zinc-600">Deep step-by-step reasoning</span>
                 </div>
               </div>
-              <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${thinkingEnabled ? "bg-purple-400" : "bg-transparent border border-zinc-700"}`} />
+              <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${(thinkingEnabled || deepThinkSearchActive) ? "bg-purple-400" : "bg-transparent border border-zinc-700"}`} />
             </button>
 
             {/* Standard Search */}
             <button
-              onClick={() => setSearchEnabled(!searchEnabled)}
+              onClick={() => !deepThinkSearchActive && setSearchEnabled(!searchEnabled)}
+              disabled={deepThinkSearchActive}
               className={`w-full p-2.5 rounded-xl text-left border transition-all flex items-center justify-between cursor-pointer select-none ${
-                searchEnabled 
+                (searchEnabled || deepThinkSearchActive)
                   ? "bg-emerald-950/20 border-emerald-500/20 text-emerald-300" 
                   : "bg-transparent border-zinc-900 text-zinc-500 hover:text-zinc-400 hover:border-zinc-805"
-              }`}
+              } ${deepThinkSearchActive ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               <div className="flex items-center gap-2 min-w-0">
-                <Globe className={`w-3.5 h-3.5 shrink-0 ${searchEnabled ? "text-emerald-400" : "text-zinc-650"}`} />
+                <Globe className={`w-3.5 h-3.5 shrink-0 ${(searchEnabled || deepThinkSearchActive) ? "text-emerald-400" : "text-zinc-650"}`} />
                 <div className="leading-tight text-left min-w-0">
                   <span className="text-[10px] font-bold block">Real-time Grounding</span>
                   <span className="text-[7.5px] font-mono mt-0.5 block truncate text-zinc-600">Web grounding corpus indexes</span>
                 </div>
               </div>
-              <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${searchEnabled ? "bg-emerald-400" : "bg-transparent border border-zinc-700"}`} />
+              <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${(searchEnabled || deepThinkSearchActive) ? "bg-emerald-400" : "bg-transparent border border-zinc-700"}`} />
             </button>
 
             {/* Task Assistant */}
@@ -1550,7 +1562,7 @@ export default function ChatCockpit({ setCurrentRoute }: ChatCockpitProps) {
               }`}
             >
               <div className="flex items-center gap-2 min-w-0">
-                <Sparkles className={`w-3.5 h-3.5 shrink-0 ${missionModeActive ? "text-cyan-400" : "text-zinc-650"}`} />
+                <Sparkles className={`w-3.5 h-3.5 shrink-0 ${missionModeActive ? "text-cyan-404" : "text-zinc-650"}`} />
                 <div className="leading-tight text-left min-w-0">
                   <span className="text-[10px] font-bold block">Autonomous Agent</span>
                   <span className="text-[7.5px] font-mono mt-0.5 block truncate text-zinc-600">Multi-step action sequences</span>
@@ -1561,21 +1573,21 @@ export default function ChatCockpit({ setCurrentRoute }: ChatCockpitProps) {
 
             {/* Neva Monitor */}
             <button
-              onClick={() => setForceShowAgentStream(!forceShowAgentStream)}
+              onClick={() => setLiveMonitorActive(!liveMonitorActive)}
               className={`w-full p-2.5 rounded-xl text-left border transition-all flex items-center justify-between cursor-pointer select-none ${
-                forceShowAgentStream 
+                liveMonitorActive 
                   ? "bg-cyan-950/20 border-cyan-500/25 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.03)]" 
                   : "bg-transparent border-zinc-900 text-zinc-500 hover:text-zinc-400 hover:border-zinc-850"
               }`}
             >
               <div className="flex items-center gap-2 min-w-0">
-                <Activity className={`w-3.5 h-3.5 shrink-0 ${forceShowAgentStream ? "text-cyan-400 animate-pulse" : "text-zinc-500"}`} />
+                <Activity className={`w-3.5 h-3.5 shrink-0 ${liveMonitorActive ? "text-cyan-400 animate-pulse" : "text-zinc-500"}`} />
                 <div className="leading-tight text-left min-w-0">
-                  <span className="text-[10px] font-bold block">Neva Live Monitor</span>
-                  <span className="text-[7.5px] font-mono mt-0.5 block truncate text-zinc-600">Real-time multi-agent radar</span>
+                  <span className="text-[10px] font-bold block">Live Monitor View</span>
+                  <span className="text-[7.5px] font-mono mt-0.5 block truncate text-zinc-600">Full desktop agent console</span>
                 </div>
               </div>
-              <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${forceShowAgentStream ? "bg-cyan-400" : "bg-transparent border border-zinc-700"}`} />
+              <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${liveMonitorActive ? "bg-cyan-404" : "bg-transparent border border-zinc-700"}`} />
             </button>
           </div>
 
@@ -1724,15 +1736,15 @@ export default function ChatCockpit({ setCurrentRoute }: ChatCockpitProps) {
           <div className="flex items-center gap-2 shrink-0">
             {/* Neva Live Monitor Toggle Button */}
             <button
-              onClick={() => setForceShowAgentStream(!forceShowAgentStream)}
+              onClick={() => setLiveMonitorActive(!liveMonitorActive)}
               className={`p-1.5 rounded-lg border flex items-center gap-1.5 text-[9px] font-mono font-bold uppercase tracking-wider transition-all cursor-pointer ${
-                forceShowAgentStream 
+                liveMonitorActive 
                   ? "bg-cyan-950/25 border-cyan-800/20 text-cyan-404 shadow-[0_0_12px_rgba(6,182,212,0.15)] animate-pulse" 
                   : "bg-[#090a10]/60 border-zinc-850 text-zinc-500 hover:text-zinc-350 hover:bg-zinc-900/30"
               }`}
-              title={forceShowAgentStream ? "Deactivate Neva Live Monitor" : "Activate Neva Live Monitor"}
+              title={liveMonitorActive ? "Deactivate Neva Live Monitor" : "Activate Neva Live Monitor"}
             >
-              <Activity className={`w-3.5 h-3.5 ${forceShowAgentStream ? "text-cyan-400 animate-pulse" : ""}`} />
+              <Activity className={`w-3.5 h-3.5 ${liveMonitorActive ? "text-cyan-400 animate-pulse" : ""}`} />
               <span className="hidden sm:inline">Neva Monitor</span>
             </button>
 
@@ -1862,6 +1874,13 @@ export default function ChatCockpit({ setCurrentRoute }: ChatCockpitProps) {
                       <ThinkingAccordion content={thinkContent} />
                     )}
 
+                    {!isUser && msg.content && msg.content.includes("DeepThink Search Report") && (
+                      <div className="bg-amber-950/20 border border-amber-900/35 text-amber-400 px-3 py-1.5 rounded-xl mb-3 flex items-center gap-2 text-[9.5px] font-mono font-bold uppercase tracking-wider select-none">
+                        <Brain className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
+                        <span>NEVA AI DeepThink Synthesized Report</span>
+                      </div>
+                    )}
+
                     {/* Content body with markdown */}
                     <div className="markdown-body prose prose-invert max-w-none text-zinc-300 font-medium tracking-normal text-[11.5px] sm:text-xs">
                       <Markdown components={{ code: CodeBlock }}>{mainBody}</Markdown>
@@ -1906,16 +1925,6 @@ export default function ChatCockpit({ setCurrentRoute }: ChatCockpitProps) {
                 </div>
               );
             })
-          )}
-
-          {/* Neva-style Live Multi-Agent Workspace Streaming Monitor */}
-          {(forceShowAgentStream || activeConversation?.status === "running" || steps.some(s => s.status === "running")) && (
-            <LiveAgentWorkspaceStream 
-              steps={steps} 
-              activeConversation={activeConversation}
-              thinkingEnabled={thinkingEnabled}
-              searchEnabled={searchEnabled}
-            />
           )}
 
           <div ref={scrollRef} className="h-2" />
@@ -1987,33 +1996,65 @@ export default function ChatCockpit({ setCurrentRoute }: ChatCockpitProps) {
 
             <div className="flex items-center gap-2 shrink-0 select-none pb-0.5 font-sans">
               {/* Short quick action badge indicators indicating mode status */}
-              <span className={`text-[7.5px] font-mono tracking-wider font-extrabold uppercase rounded p-1 select-none leading-none ${
-                thinkingEnabled 
-                  ? "bg-purple-950/40 text-purple-400 border border-purple-900/40" 
-                  : "bg-zinc-955/60 text-zinc-700 border border-zinc-900"
-              }`}>
+              <button
+                type="button"
+                onClick={() => !deepThinkSearchActive && setThinkingEnabled(!thinkingEnabled)}
+                disabled={deepThinkSearchActive}
+                className={`text-[7.5px] font-mono tracking-wider font-extrabold uppercase rounded p-1 select-none leading-none transition-all cursor-pointer border ${
+                  (thinkingEnabled || deepThinkSearchActive)
+                    ? "bg-purple-950/40 text-purple-400 border-purple-900/40" 
+                    : "bg-[#090a10]/60 text-zinc-500 border-zinc-900 hover:text-zinc-400"
+                } ${deepThinkSearchActive ? "opacity-50 cursor-not-allowed" : ""}`}
+                title="Toggle Reasoning Trace"
+              >
                 Think
-              </span>
-              <span className={`text-[7.5px] font-mono tracking-wider font-extrabold uppercase rounded p-1 select-none leading-none ${
-                searchEnabled 
-                  ? "bg-emerald-955/40 text-emerald-400 border border-emerald-900/40" 
-                  : "bg-zinc-955/60 text-zinc-700 border border-zinc-900"
-              }`}>
+              </button>
+              
+              <button
+                type="button"
+                onClick={() => !deepThinkSearchActive && setSearchEnabled(!searchEnabled)}
+                disabled={deepThinkSearchActive}
+                className={`text-[7.5px] font-mono tracking-wider font-extrabold uppercase rounded p-1 select-none leading-none transition-all cursor-pointer border ${
+                  (searchEnabled || deepThinkSearchActive)
+                    ? "bg-emerald-955/40 text-emerald-400 border-emerald-900/40" 
+                    : "bg-[#090a10]/60 text-zinc-500 border-zinc-900 hover:text-zinc-400"
+                } ${deepThinkSearchActive ? "opacity-50 cursor-not-allowed" : ""}`}
+                title="Toggle Web Search Grounding"
+              >
                 Search
-              </span>
+              </button>
 
               <button 
                 type="button"
-                onClick={() => setForceShowAgentStream(!forceShowAgentStream)}
-                className={`text-[7.5px] font-mono tracking-wider font-extrabold uppercase rounded p-1 select-none leading-none transition-all cursor-pointer flex items-center gap-1 ${
-                  forceShowAgentStream 
-                    ? "bg-cyan-950/40 text-cyan-400 border border-cyan-800/30 shadow-[0_0_8px_rgba(6,182,212,0.2)] ring-1 ring-cyan-500/10" 
-                    : "bg-[#090a10]/60 text-zinc-500 border border-zinc-900 hover:text-zinc-400 hover:border-zinc-805"
+                onClick={() => setLiveMonitorActive(!liveMonitorActive)}
+                className={`text-[7.5px] font-mono tracking-wider font-extrabold uppercase rounded p-1 select-none leading-none transition-all cursor-pointer flex items-center gap-1 border ${
+                  liveMonitorActive 
+                    ? "bg-cyan-950/40 text-cyan-404 border-cyan-800/25 shadow-[0_0_8px_rgba(6,182,212,0.2)] ring-1 ring-cyan-500/10" 
+                    : "bg-[#090a10]/60 text-zinc-500 border-zinc-900 hover:text-zinc-400 hover:border-zinc-805"
                 }`}
-                title="Toggle Neva Live Multi-Agent Monitor streams in chat view"
+                title="Toggle Neva Live Multi-Agent Monitor streams in right panel"
               >
-                <Activity className="w-2.5 h-2.5 shrink-0" />
-                <span>Monitor: {forceShowAgentStream ? "ON" : "OFF"}</span>
+                {activeConversation?.status === "running" ? (
+                  <Activity className="w-2.5 h-2.5 shrink-0 text-cyan-400 animate-pulse" />
+                ) : (
+                  <svg className="w-2.5 h-2.5 shrink-0 text-zinc-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                )}
+                <span>Monitor</span>
+              </button>
+
+              <button 
+                type="button"
+                onClick={() => setDeepThinkSearchActive(!deepThinkSearchActive)}
+                className={`text-[7.5px] font-mono tracking-wider font-extrabold uppercase rounded p-1 select-none leading-none transition-all cursor-pointer flex items-center gap-1.5 border ${
+                  deepThinkSearchActive 
+                    ? "bg-amber-950/40 text-amber-400 border-amber-800/30 shadow-[0_0_8px_rgba(245,158,11,0.2)] ring-1 ring-amber-500/10" 
+                    : "bg-[#090a10]/60 text-zinc-500 border-zinc-900 hover:text-zinc-400 hover:border-zinc-805"
+                }`}
+                title="Toggle AI DeepThink Search"
+              >
+                <Brain className={`w-2.5 h-2.5 shrink-0 ${deepThinkSearchActive ? "text-amber-400 animate-pulse" : ""}`} />
+                <span>DeepThink</span>
+                <span className="text-[6px] font-mono bg-amber-955/45 text-amber-500 border border-amber-900/30 px-0.8 py-0.2 rounded shrink-0 font-extrabold">PRO</span>
               </button>
 
               <button 
@@ -2032,6 +2073,328 @@ export default function ChatCockpit({ setCurrentRoute }: ChatCockpitProps) {
           </div>
         </div>
       </section>
+
+      {/* MOBILE LEFT MONITOR BACKDROP */}
+      {liveMonitorActive && (
+        <div 
+          onClick={() => setLiveMonitorActive(false)}
+          className="fixed inset-0 bg-black/80 backdrop-blur-xs z-40 lg:hidden cursor-pointer animate-fade-in"
+        />
+      )}
+
+      {/* MANUS AI-STYLE AGENT COMPUTER OVERLAY */}
+      {liveMonitorActive && (
+        <aside 
+          id="neva-agent-computer-console"
+          className="
+            fixed bottom-0 left-0 right-0 h-[80vh] rounded-t-3xl border-t bg-[#040507] p-4 flex flex-col justify-between z-50 transition-all duration-300 transform translate-y-0 border-zinc-850 shadow-[0_-25px_60px_-15px_rgba(0,0,0,0.9)]
+            lg:relative lg:inset-auto lg:h-full lg:w-[480px] xl:w-[580px] lg:border-l lg:border-t-0 lg:rounded-2xl lg:p-4 lg:shrink-0 lg:shadow-none
+          "
+        >
+          {(() => {
+            const monitorSteps = steps.filter(s => s.status === "running" || s.status === "completed" || s.status === "failed");
+            
+            // Calculate active displayed step index
+            const activeStepIndex = selectedStepIndex !== null && selectedStepIndex >= 0 && selectedStepIndex < monitorSteps.length
+              ? selectedStepIndex
+              : monitorSteps.length - 1;
+              
+            const displayStep = monitorSteps[activeStepIndex];
+            const isLive = selectedStepIndex === null || selectedStepIndex === monitorSteps.length - 1;
+
+            // Compute Estimated Completion Time (ETA)
+            const completedSteps = monitorSteps.filter(s => s.status === "completed" && s.durationMs);
+            const avgDurationMs = completedSteps.length > 0
+              ? completedSteps.reduce((acc, curr) => acc + (curr.durationMs || 0), 0) / completedSteps.length
+              : 3500;
+            const etaSecs = Math.max(2, Math.round(avgDurationMs / 1000));
+
+            return (
+              <div className="flex flex-col h-full overflow-hidden justify-between gap-3">
+                
+                {/* 1. Header block */}
+                <div className="flex items-center justify-between pb-3 border-b border-zinc-900 shrink-0">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Server className="w-4 h-4 text-cyan-404 shrink-0" />
+                    <div className="leading-tight">
+                      <span className="text-[10px] tracking-wider font-mono font-bold text-zinc-300 uppercase block">NEVA's Computer</span>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className="relative flex h-1.5 w-1.5">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-404 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-cyan-400"></span>
+                        </span>
+                        <span className="text-[7.5px] font-mono font-bold text-cyan-404 uppercase tracking-wider">
+                          {isLive ? "LIVE RADAR RECONSTREAM" : "HISTORIC SCRUB TRACE"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Action chips and Cancel button */}
+                  <div className="flex items-center gap-2 select-none">
+                    {activeConversation?.status === "running" && (
+                      <div className="flex items-center gap-1.5 bg-cyan-950/30 border border-cyan-800/15 px-2 py-0.8 rounded-lg animate-fade-in shrink-0">
+                        <span className="text-[7.5px] font-mono text-cyan-100 font-bold truncate max-w-[90px]">
+                          Running Sweeps
+                        </span>
+                        <span className="text-[7px] font-mono text-zinc-650 bg-[#090a10]/40 border border-zinc-850 px-1 py-0.2 rounded font-extrabold shrink-0">
+                          ETA: ~{etaSecs}s
+                        </span>
+                        <button
+                          onClick={() => cancelRun(activeConversation.id)}
+                          className="text-rose-500 hover:text-rose-400 hover:bg-rose-950/20 p-0.5 rounded transition-colors shrink-0 cursor-pointer"
+                          title="Cancel active pipeline"
+                        >
+                          <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line></svg>
+                        </button>
+                      </div>
+                    )}
+
+                    <button
+                      onClick={() => setLiveMonitorActive(false)}
+                      className="text-zinc-650 hover:text-zinc-300 p-1 rounded hover:bg-zinc-900 border border-transparent hover:border-zinc-805 transition-all cursor-pointer shrink-0"
+                      title="Fold Live Monitor"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* 2. Main Live Preview Pane */}
+                <div className="flex-1 min-h-0 min-w-0 bg-[#06070a]/90 border border-zinc-900 rounded-xl overflow-hidden flex flex-col justify-between relative shadow-inner">
+                  
+                  {monitorSteps.length === 0 ? (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center select-none bg-[#020305]/60">
+                      <div className="w-12 h-12 rounded-2xl bg-[#090a10] border border-zinc-900 flex items-center justify-center mb-4 text-zinc-500 animate-pulse shadow-md">
+                        <Terminal className="w-4 h-4" />
+                      </div>
+                      <span className="text-[8px] tracking-[0.2em] font-mono font-bold text-zinc-400 uppercase block">AWAITING SWEEP LOOPS</span>
+                      <p className="text-zinc-600 font-sans text-[10px] leading-relaxed max-w-xs mt-1 font-medium">
+                        System standing by. Transmit queries from the cockpit to deploy sub-agent computational processes.
+                      </p>
+                    </div>
+                  ) : !displayStep ? (
+                    <div className="absolute inset-0 flex items-center justify-center p-4">
+                      <span className="text-xs font-mono text-zinc-500 animate-pulse">Initializing preview matrices...</span>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col h-full w-full min-h-0 overflow-hidden bg-[#020305]/95">
+                      
+                      {/* Browser Action Style Tab */}
+                      {displayStep.tool === "browser" || displayStep.tool?.includes("browse") || displayStep.tool?.includes("fetch") || displayStep.tool?.includes("web") ? (
+                        <div className="flex flex-col h-full min-h-0 overflow-hidden leading-relaxed">
+                          {/* SSL tab navbar look */}
+                          <div className="bg-[#090a10]/80 h-10 border-b border-zinc-900 px-3 flex items-center gap-2 shrink-0">
+                            <div className="flex gap-1">
+                              <span className="w-2 h-2 rounded-full bg-rose-500/80" />
+                              <span className="w-2 h-2 rounded-full bg-amber-500/80" />
+                              <span className="w-2 h-2 rounded-full bg-emerald-500/80" />
+                            </div>
+                            <div className="flex-1 bg-zinc-950/60 border border-zinc-900 rounded-lg px-2 py-0.8 flex items-center gap-1.5 min-w-0">
+                              <svg className="w-2.5 h-2.5 text-emerald-450 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                              <span className="text-[8.5px] font-mono text-zinc-455 truncate">
+                                https://neva-crawler.ai/active-scraping?query={encodeURIComponent(displayStep.inputPreview || "parameters")}
+                              </span>
+                            </div>
+                            <span className="text-[6.5px] font-mono font-bold bg-cyan-950/40 border border-cyan-800/20 text-cyan-400 px-1 py-0.2 rounded uppercase shrink-0">
+                              SSL CHECK
+                            </span>
+                          </div>
+
+                          {/* Scrolling Rendered Page content view */}
+                          <div className="flex-1 overflow-y-auto p-4 md:p-5 text-[11px] font-sans text-zinc-350 leading-relaxed scrollbar-thin space-y-3 prose prose-invert select-text">
+                            <div className="p-3 bg-zinc-955/20 border border-cyan-500/5 rounded-xl border-l-2 border-l-cyan-500 shadow-sm leading-normal">
+                              <span className="text-[8px] font-mono uppercase text-cyan-400 font-extrabold tracking-widest block">EXTRACTED WEB OBJECT INTENT</span>
+                              <p className="font-semibold text-zinc-200 mt-1">{displayStep.inputPreview || "Acquiring network asset matrix details"}</p>
+                            </div>
+                            
+                            <div className="space-y-2 mt-4">
+                              <span className="text-[8px] font-mono text-zinc-500 uppercase tracking-widest block font-bold">Scraped Structural Corpus</span>
+                              <p className="text-[11px] font-medium leading-relaxed font-sans text-zinc-400">
+                                {displayStep.outputPreview || "Parsing structured elements into active context memory registers. Real-time index sync complete."}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ) : displayStep.tool === "search" || displayStep.tool?.includes("query") || displayStep.tool?.includes("tavily") || displayStep.tool?.includes("google") ? (
+                        <div className="flex flex-col h-full min-h-0 overflow-hidden leading-relaxed">
+                          {/* Search Tab Navbar */}
+                          <div className="bg-[#090a10]/80 h-10 border-b border-zinc-900 px-3 flex items-center gap-2 shrink-0">
+                            <div className="w-full bg-zinc-955/40 border border-zinc-900 rounded-lg px-2.5 py-1 flex items-center gap-2 min-w-0">
+                              <svg className="w-3 h-3 text-zinc-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                              <span className="text-[9.5px] font-sans font-bold text-zinc-300 truncate">
+                                {displayStep.inputPreview || "Active Grounding Matrix Queries"}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Grounding lookup outcomes */}
+                          <div className="flex-grow overflow-y-auto p-4 md:p-5 scrollbar-thin space-y-3.5 select-text leading-relaxed font-sans text-zinc-350">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[7.5px] font-mono text-emerald-450 border border-emerald-900/40 bg-emerald-955/40 font-bold uppercase rounded p-1 tracking-wider">TAVILY ROOT SYNC</span>
+                              <span className="text-[7.5px] font-mono text-zinc-650">3 Grounding Matches Synced</span>
+                            </div>
+
+                            <div className="space-y-3">
+                              {[
+                                { t: "Google AI Grounding Documents", c: "Grounding and Search APIs supply model runs with verified, factual citations natively." },
+                                { t: "Vite and modern packaging workflows", c: "Dynamic fast compilations ensure high performance offlines without DB lag." },
+                                { t: "Tailwind CSS Layout bounds", c: "Full-width drawer resizes on viewport configurations elegantly above grid parameters." }
+                              ].map((it, idx) => (
+                                <div key={idx} className="p-3 bg-[#06070a] border border-zinc-900 rounded-xl leading-normal hover:border-zinc-800 transition-colors">
+                                  <span className="text-[10px] font-bold text-zinc-300 block">{it.t}</span>
+                                  <span className="text-[10px] text-zinc-500 block mt-1 font-medium">{it.c}</span>
+                                </div>
+                              ))}
+                            </div>
+                            
+                            <p className="text-[10.5px] font-mono text-zinc-500 pt-3 border-t border-zinc-900 leading-relaxed">
+                              OUTPUT RAW RESPONSE: {displayStep.outputPreview || "Synthesis pass successfully complete. Report assembled in workspace."}
+                            </p>
+                          </div>
+                        </div>
+                      ) : displayStep.tool?.includes("editor") || displayStep.tool?.includes("write") || displayStep.tool?.includes("edit") || displayStep.tool?.includes("save") ? (
+                        <div className="flex flex-col h-full min-h-0 overflow-hidden leading-relaxed">
+                          {/* Code editor navbar look */}
+                          <div className="bg-[#090a10]/80 h-10 border-b border-zinc-900 px-3 flex items-center justify-between shrink-0">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span className="w-1.5 h-1.5 rounded-full bg-cyan-404 shrink-0 animate-pulse" />
+                              <span className="text-[9px] font-mono text-zinc-350 font-bold truncate">/src/App.tsx</span>
+                            </div>
+                            <span className="text-[7px] font-mono bg-purple-950/20 text-purple-400 border border-purple-900/30 px-1 py-0.2 rounded uppercase shrink-0">
+                              TypeScript CJS Bundle
+                            </span>
+                          </div>
+
+                          {/* Editor margins and simulated code pane */}
+                          <div className="flex-1 overflow-y-auto p-4 md:p-5 font-mono text-[9.5px] leading-relaxed select-text text-zinc-400 bg-[#040507] scrollbar-thin">
+                            <div className="space-y-1">
+                              <div><span className="text-zinc-700 select-none mr-3">1 |</span> <span className="text-purple-404">import</span> React, &#123; useState, useEffect &#125; <span className="text-purple-404">from</span> <span className="text-emerald-500">"react"</span>;</div>
+                              <div><span className="text-zinc-700 select-none mr-3">2 |</span> <span className="text-purple-404">import</span> &#123; useApp &#125; <span className="text-purple-404">from</span> <span className="text-emerald-500">"./AppContext"</span>;</div>
+                              <div><span className="text-zinc-700 select-none mr-3">3 |</span> </div>
+                              <div><span className="text-zinc-700 select-none mr-3">4 |</span> <span className="text-purple-404">export function</span> <span className="text-cyan-404 font-bold">NevaAgentWorkspace</span>() &#123;</div>
+                              <div><span className="text-zinc-700 select-none mr-3">5 |</span> <span className="text-zinc-750 font-bold">  // Modified task: {displayStep.inputPreview || "Modify logic"}</span></div>
+                              <div><span className="text-zinc-700 select-none mr-3">6 |</span>   <span className="text-purple-404">const</span> &#123; active, deepThinkSearchActive &#125; = <span className="text-cyan-404">useApp</span>();</div>
+                              <div><span className="text-zinc-700 select-none mr-3">7 |</span> </div>
+                              <div><span className="text-zinc-700 select-none mr-3">8 |</span>   <span className="text-purple-404">return</span> (</div>
+                              <div><span className="text-zinc-700 select-none mr-3">9 |</span>     <span className="text-zinc-500">&lt;</span><span className="text-emerald-400 font-bold">div</span> className<span className="text-purple-404">=</span><span className="text-orange-400">"relative"</span><span className="text-zinc-500">&gt;</span></div>
+                              <div><span className="text-zinc-700 select-none mr-3">10 |</span>       <span className="text-zinc-500">&lt;</span><span className="text-emerald-400 font-bold">p</span><span className="text-zinc-500">&gt;</span>Neva sync complete.<span className="text-zinc-500">&lt;/</span><span className="text-emerald-400 font-bold">p</span><span className="text-zinc-500">&gt;</span></div>
+                              <div><span className="text-zinc-700 select-none mr-3">11 |</span>     <span className="text-zinc-500">&lt;/</span><span className="text-emerald-400 font-bold">div</span><span className="text-zinc-500">&gt;</span></div>
+                              <div><span className="text-zinc-700 select-none mr-3">12 |</span>   );</div>
+                              <div><span className="text-zinc-700 select-none mr-3">13 |</span> &#125;</div>
+                            </div>
+
+                            <div className="mt-4 p-2.5 bg-[#06070b] border border-zinc-900 rounded-lg text-zinc-550 text-[10px] leading-relaxed leading-normal">
+                              <span className="text-[8px] font-mono uppercase text-purple-404 font-bold block pb-1">OUTPUT TRANSACTION SUMMARY</span>
+                              {displayStep.outputPreview || "Code updates written successfully to file systems. Validation checks compiled green."}
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col h-full min-h-0 overflow-hidden leading-relaxed">
+                          {/* Thinking / System Diagnostic log view */}
+                          <div className="bg-[#090a10]/80 h-10 border-b border-zinc-900 px-3 flex items-center justify-between shrink-0">
+                            <span className="text-[9px] font-mono text-cyan-404 font-bold uppercase">System Diagnostic Logs</span>
+                            <span className="text-[7.5px] font-mono text-zinc-600 uppercase font-bold tracking-wider">SECURE TRACE_D9D5</span>
+                          </div>
+
+                          <div className="flex-grow overflow-y-auto p-4 md:p-5 font-mono text-[9.5px] scrollbar-thin space-y-3.5 select-text leading-relaxed text-zinc-455 bg-[#040507]">
+                            <div className="p-2.5 bg-purple-950/15 border border-purple-900/25 rounded-xl border-l border-l-purple-500 leading-normal">
+                              <span className="text-[8px] font-mono uppercase text-purple-400 font-extrabold tracking-widest block">System Thought / Reason Trace</span>
+                              <p className="mt-1 leading-normal text-zinc-350">{displayStep.reasoningTrace || "Evaluating strategic priorities. Resolving next procedural steps."}</p>
+                            </div>
+                            
+                            <div className="space-y-1 bg-[#06070c] border border-zinc-900 p-3 rounded-xl max-h-[170px] overflow-y-auto scrollbar-thin text-[9px]">
+                              <p className="text-[#a5b4fc]">[SYSTEM DISPATCH]: Loaded Neva agent cognitive model.</p>
+                              <p className="text-zinc-650">[SYSTEM PARAMS]: Input preview details evaluated.</p>
+                              <p className="text-[#a2e9c1]">[GROUNDING]: Verified index connections mapping.</p>
+                              <p className="text-zinc-650">[METRIC]: Latency calculated at {displayStep.durationMs || 120}ms.</p>
+                              <p className="text-cyan-404 font-bold">[RADAR STREAM COMPLETE] Ready.</p>
+                            </div>
+
+                            <p className="text-[10px] font-sans font-medium text-zinc-500 leading-relaxed border-t border-zinc-900 pt-3">
+                              RESULT SNAPSHOT: {displayStep.outputPreview || "Sub-agent routine executed successfully."}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                    </div>
+                  )}
+
+                </div>
+
+                {/* 3. Timeline Scrubber and scrub nodes */}
+                <div className="shrink-0 flex flex-col gap-2.5">
+                  <div className="flex items-center justify-between select-none">
+                    <div className="flex items-center gap-1">
+                      <Sliders className="w-3 h-3 text-zinc-650" />
+                      <span className="text-[8px] font-mono uppercase text-zinc-400 font-bold tracking-wider">Timeline Scrubber Grid</span>
+                    </div>
+                    {monitorSteps.length > 0 && (
+                      <span className="text-[7.5px] font-mono text-zinc-600 bg-zinc-955/60 border border-zinc-900 px-1 py-0.2 rounded leading-none select-none font-extrabold">
+                        STEP {activeStepIndex + 1} OF {monitorSteps.length}
+                      </span>
+                    )}
+                  </div>
+
+                  {monitorSteps.length > 0 && (
+                    <div className="flex items-center gap-2 select-none relative h-8">
+                      {/* Linear progression timeline bar */}
+                      <div className="absolute left-1 right-1 h-0.5 bg-zinc-900 rounded-full" />
+                      
+                      {/* Scrub clickable nodes */}
+                      <div className="absolute inset-0 flex items-center justify-between">
+                        {monitorSteps.map((stObj, stIdx) => {
+                          const isSelected = stIdx === activeStepIndex;
+                          const isRunning = stObj.status === "running";
+                          const isCompleted = stObj.status === "completed";
+                          const isFailed = stObj.status === "failed";
+
+                          return (
+                            <button
+                              key={stObj.id || stIdx}
+                              onClick={() => setSelectedStepIndex(stIdx)}
+                              className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all z-10 cursor-pointer shadow-md select-none outline-none ${
+                                isSelected 
+                                  ? "bg-cyan-500 border-cyan-300 ring-4 ring-cyan-500/10 scale-125 font-bold"
+                                  : isRunning
+                                  ? "bg-purple-900 border-purple-500 animate-pulse"
+                                  : isCompleted
+                                  ? "bg-emerald-950 border-emerald-900/60 hover:bg-emerald-900 hover:border-emerald-450"
+                                  : isFailed
+                                  ? "bg-rose-950 border-rose-900"
+                                  : "bg-zinc-955 border-zinc-900"
+                              }`}
+                              title={`Step ${stIdx + 1}: ${stObj.tool || "Think"}`}
+                            >
+                              <span className="text-[7.5px] font-mono font-extrabold text-zinc-100 leading-none">
+                                {stIdx + 1}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                    </div>
+                  )}
+
+                  {!isLive && monitorSteps.length > 0 && (
+                    <button
+                      onClick={() => setSelectedStepIndex(null)}
+                      className="w-full py-1.5 rounded-xl bg-cyan-950/45 hover:bg-cyan-900/40 border border-cyan-800/15 text-cyan-404 hover:text-cyan-300 font-mono text-[8px] font-bold uppercase transition-all tracking-widest flex items-center justify-center gap-1.5 cursor-pointer animate-fade-in outline-none"
+                    >
+                      <RefreshCw className="w-2.5 h-2.5 animate-spin" style={{ animationDuration: "3.5s" }} />
+                      <span>JUMP TO LIVE COMPUTING</span>
+                    </button>
+                  )}
+                </div>
+
+              </div>
+            );
+          })()}
+        </aside>
+      )}
 
       {/* MOBILE RIGHT DRAWER BACKDROP */}
       {rightChatHubOpen && (

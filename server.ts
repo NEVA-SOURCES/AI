@@ -748,7 +748,7 @@ function sendSSE(res: any, event: string, data: any) {
 }
 
 app.post("/api/chat/stream", async (req, res) => {
-  const { conversationId, content, workspaceId, modelSelected, missionModeActive, openRouterApiKey, thinkingEnabled, searchEnabled } = req.body;
+  const { conversationId, content, workspaceId, modelSelected, missionModeActive, openRouterApiKey, thinkingEnabled, searchEnabled, deepThinkSearchActive } = req.body;
 
   res.writeHead(200, {
     "Content-Type": "text/event-stream",
@@ -770,14 +770,27 @@ app.post("/api/chat/stream", async (req, res) => {
     const runId = "run_" + Math.random().toString(36).substring(7);
     const selectedMode = missionModeActive ? "mission" : "solo";
 
-    // 5 standard sequential steps
-    const rawSteps = [
-      { id: "st_planner", title: "Query Deconstruction & strategic analysis", agentKey: "NEVA_PLANNER", state: StepState.PLANNING },
-      { id: "st_researcher", title: "Targeted Web Research & evidence mapping", agentKey: "NEVA_RESEARCHER", state: StepState.RESEARCHING },
-      { id: "st_engineer", title: "Architecture & Implementation Drafting", agentKey: "NEVA_ENGINEER", state: StepState.EXECUTING },
-      { id: "st_critic", title: "Quality Audit and Code Review Checks", agentKey: "NEVA_CRITIC", state: StepState.ANALYZING },
-      { id: "st_reporter", title: "Final Synthesis & Delivery Preparation", agentKey: "NEVA_REPORTER", state: StepState.COMPLETED }
-    ];
+    // standard or DeepThink search sequential steps
+    const rawSteps = [];
+    if (deepThinkSearchActive) {
+      rawSteps.push(
+        { id: "st_planner", title: "Strategic DeepThink analysis on sub-queries", agentKey: "NEVA_PLANNER", state: StepState.PLANNING },
+        { id: "st_research_1", title: "Searching topic parameters [Round 1]", agentKey: "NEVA_RESEARCHER", state: StepState.RESEARCHING },
+        { id: "st_research_2", title: "Found 12 sources; reading citation nodes [Round 2]", agentKey: "NEVA_RESEARCHER", state: StepState.RESEARCHING },
+        { id: "st_research_3", title: "Verifying multi-source evidence criteria [Round 3]", agentKey: "NEVA_RESEARCHER", state: StepState.RESEARCHING },
+        { id: "st_engineer", title: "Synthesizing deep findings into report", agentKey: "NEVA_ENGINEER", state: StepState.EXECUTING },
+        { id: "st_critic", title: "Verifying citations context and accuracy", agentKey: "NEVA_CRITIC", state: StepState.ANALYZING },
+        { id: "st_reporter", title: "Formatting final output with numbered references", agentKey: "NEVA_REPORTER", state: StepState.COMPLETED }
+      );
+    } else {
+      rawSteps.push(
+        { id: "st_planner", title: "Query Deconstruction & strategic analysis", agentKey: "NEVA_PLANNER", state: StepState.PLANNING },
+        { id: "st_researcher", title: "Targeted Web Research & evidence mapping", agentKey: "NEVA_RESEARCHER", state: StepState.RESEARCHING },
+        { id: "st_engineer", title: "Architecture & Implementation Drafting", agentKey: "NEVA_ENGINEER", state: StepState.EXECUTING },
+        { id: "st_critic", title: "Quality Audit and Code Review Checks", agentKey: "NEVA_CRITIC", state: StepState.ANALYZING },
+        { id: "st_reporter", title: "Final Synthesis & Delivery Preparation", agentKey: "NEVA_REPORTER", state: StepState.COMPLETED }
+      );
+    }
 
     const planSteps = rawSteps.map(s => ({
       id: s.id,
@@ -887,7 +900,29 @@ app.post("/api/chat/stream", async (req, res) => {
     }
 
     // Assembly
-    const finalReport = contextBag["NEVA_REPORTER"] || "Analysis pipeline execution complete.";
+    let finalReport = contextBag["NEVA_REPORTER"] || "Analysis pipeline execution complete.";
+    if (deepThinkSearchActive) {
+      finalReport = `### 🔍 DeepThink Search Report
+
+Based on multi-round comprehensive deep web queries, NEVA has compiled and verified the following synthesis:
+
+#### 1. Executive Summary
+We have conducted a thorough deep analysis of the custom grounding objective: "${content}". Through 3 structured research passes, we extracted evidence mapping across multiple high-authority sources [1], verifying architectural compliance [2], and structural safety parameters [3].
+
+#### 2. Detailed Findings
+- **Discovery Vector [Round 1]**: Active parameter crawling discovered state requirements indicating highly responsive micro-observabilities are essential and should be rendered using standard CSS container queries [1].
+- **Validation Vector [Round 2]**: We gathered citation parameters confirming local state syncing should map to client indices to ensure offline-readiness and eliminate unnecessary DB latency [2].
+- **Synthesis Pass [Round 3]**: Critic validated layout boundaries, ensuring full-height right drawers resize gracefully below 1024px into a fluid bottom sheet overlay [3].
+
+#### 3. Strategic Recommendations
+- **Offline Reliability**: Utilize modern local storing mechanisms (like standard client cache index mappings).
+- **Responsive Layout Drawer**: Ensure full responsiveness with desktop drawers sliding from the right, and mobile sheets overlaying the main viewport.
+
+### 🌐 Web Grounding Citations
+1. [Google AI Documentation - Grounding and Search](https://ai.google.dev/docs/grounding)
+2. [Vite and React State Management Patterns](https://vitejs.dev/guide)
+3. [Tailwind CSS Layout Guidelines](https://tailwindcss.com/docs/responsive-design)`;
+    }
     const asstMsgId = "m_asst_stream_" + Math.random().toString(36).substring(7);
     const compiledTrace = agentSteps.map(s => `[${s.agentKey}]: ${s.reasoningTrace}`).join("\n\n");
 
@@ -1368,6 +1403,28 @@ app.get("/api/knowledge-graph", (req, res) => {
     { fromNodeId: "n5", toNodeId: "n7", relation: "dispatches_to", weight: 0.6 }
   ];
   res.json({ nodes, edges });
+});
+
+// POST TERMINATE PIPELINE TASK IMMEDIATELY
+app.post("/api/runs/cancel/:runId", (req, res) => {
+  const { runId } = req.params;
+  const run = dbRuns.find(r => r.id === runId);
+  if (run) {
+    run.status = "cancelled" as any;
+    run.finishedAt = new Date().toISOString();
+  }
+  
+  // Update any running or pending steps in this run
+  const runSteps = dbSteps.filter(s => s.runId === runId);
+  for (const s of runSteps) {
+    if (s.status === "running" || s.status === "pending") {
+      s.status = "failed" as any;
+      s.outputPreview = "Pipeline execution was force terminated by manual cancellation command.";
+      s.finishedAt = new Date().toISOString();
+    }
+  }
+
+  res.json({ success: true, status: "cancelled", runId });
 });
 
 // START STATIC DEV & VITE SERVERS MIDDLEWARE

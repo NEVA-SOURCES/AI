@@ -10,7 +10,6 @@ import OutputStudio from "./components/OutputStudio";
 import PromptStudio from "./components/PromptStudio";
 import ImageStudio from "./components/ImageStudio";
 import ChatCockpit from "./components/ChatCockpit";
-import LiveMonitorView from "./components/LiveMonitorView";
 import AISearchEngine from "./components/AISearchEngine";
 
 import Markdown from "react-markdown";
@@ -235,50 +234,41 @@ function MainAppShell() {
     addCustomModel,
     deleteCustomModel,
     thinkingEnabled, setThinkingEnabled,
-    searchEnabled, setSearchEnabled
+    searchEnabled, setSearchEnabled,
+    liveMonitorActive, setLiveMonitorActive
   } = useApp();
 
-  const [currentRoute, setCurrentRoute] = useState<string>("monitor");
+  const [currentRoute, setCurrentRoute] = useState<string>("chat");
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
-
-  // Store active non-monitor route
-  useEffect(() => {
-    if (currentRoute !== "monitor") {
-      localStorage.setItem("last_active_route", currentRoute);
-    }
-  }, [currentRoute]);
 
   // Command palette navigation & global event bus route dispatcher
   useEffect(() => {
     const handleNav = (e: Event) => {
       const customEvent = e as CustomEvent<string>;
       if (customEvent.detail) {
-        setCurrentRoute(customEvent.detail);
+        if (customEvent.detail === "monitor") {
+          setLiveMonitorActive(true);
+          setCurrentRoute("chat");
+        } else {
+          setCurrentRoute(customEvent.detail);
+        }
       }
     };
     window.addEventListener("nav-route", handleNav);
     return () => window.removeEventListener("nav-route", handleNav);
-  }, []);
+  }, [setLiveMonitorActive]);
 
   // Global Keyboard shortcut Cmd/Ctrl + Shift + L to open NEVA's computer overlay
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === "l") {
         e.preventDefault();
-        setCurrentRoute(prev => {
-          if (prev === "monitor") {
-            const fallback = localStorage.getItem("last_active_route") || "chat";
-            return fallback === "monitor" ? "chat" : fallback;
-          } else {
-            localStorage.setItem("last_active_route", prev);
-            return "monitor";
-          }
-        });
+        setLiveMonitorActive(!liveMonitorActive);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [setLiveMonitorActive, liveMonitorActive]);
   
   // Chat composer states
   const [composorPrompt, setComposorPrompt] = useState("");
@@ -572,10 +562,6 @@ function MainAppShell() {
             )}
 
             {/* VIEW ROUTE 2: CHAT ACTIVE MISSION AREA */}
-            {currentRoute === "monitor" && (
-              <LiveMonitorView />
-            )}
-
             {currentRoute === "search" && (
               <AISearchEngine />
             )}

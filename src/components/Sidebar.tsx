@@ -170,22 +170,6 @@ export default function Sidebar({
         {/* NAVIGATION LINKS */}
         <div className="px-2 py-2 text-[#a3a3a3]">
           <div className="text-[9px] uppercase font-mono text-zinc-600 px-3 py-1.5 tracking-[0.2em] border-b border-zinc-900 mb-1.5 font-bold">SYSTEM CONTROLS</div>
-          
-          <button 
-            id="nav-monitor-btn"
-            onClick={() => onNavigate("monitor")} 
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] transition-all hover:bg-zinc-900 text-left text-zinc-400 hover:text-zinc-100 group cursor-pointer mb-1"
-          >
-            <Brain className="w-3.5 h-3.5 text-cyan-400 group-hover:animate-pulse animate-pulse shrink-0" />
-            <span className="font-semibold text-zinc-100 group-hover:text-cyan-300">Live AI Monitor</span>
-            <span className="text-[7.5px] font-mono bg-cyan-400/15 text-cyan-404 border border-cyan-500/20 px-1.5 py-0.2 rounded font-bold ml-auto flex items-center gap-1">
-              <span className="relative flex h-1.5 w-1.5 shrink-0">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-cyan-400"></span>
-              </span>
-              LIVE
-            </span>
-          </button>
 
           <button 
             id="nav-search-btn"

@@ -32,6 +32,10 @@ interface AppContextType {
   setThinkingEnabled: (enabled: boolean) => void;
   searchEnabled: boolean;
   setSearchEnabled: (enabled: boolean) => void;
+  liveMonitorActive: boolean;
+  setLiveMonitorActive: (active: boolean) => void;
+  deepThinkSearchActive: boolean;
+  setDeepThinkSearchActive: (active: boolean) => void;
   customModels: OpenRouterModel[];
   allModels: OpenRouterModel[];
   addCustomModel: (model: OpenRouterModel) => void;
@@ -49,6 +53,7 @@ interface AppContextType {
   resolveApproval: (approvalId: string, resolution: "approved" | "denied" | "modified", modifiedPayload?: any) => Promise<void>;
   addMemory: (content: string, kind: any) => Promise<void>;
   forgetMemory: (id: string) => Promise<void>;
+  cancelRun: (runId: string) => Promise<void>;
   uploadFile: (name: string, size: number, type: string) => Promise<void>;
   createProfile: (data: Partial<CapabilityProfile>) => Promise<void>;
   createSkill: (name: string, slug: string, description: string, category: string) => Promise<void>;
@@ -95,6 +100,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [searchEnabled, setSearchEnabled] = useState<boolean>(() => {
     return localStorage.getItem("neva_search_enabled") === "true";
   });
+
+  const [liveMonitorActive, setLiveMonitorActive] = useState(false);
+  const [deepThinkSearchActive, setDeepThinkSearchActive] = useState(false);
 
   useEffect(() => {
     localStorage.setItem("neva_thinking_enabled", String(thinkingEnabled));
@@ -398,8 +406,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
             modelSelected,
             missionModeActive,
             openRouterApiKey,
-            thinkingEnabled,
-            searchEnabled
+            thinkingEnabled: deepThinkSearchActive ? true : thinkingEnabled,
+            searchEnabled: deepThinkSearchActive ? true : searchEnabled,
+            deepThinkSearchActive
           })
         });
 
@@ -537,8 +546,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
           modelSelected,
           missionModeActive,
           openRouterApiKey,
-          thinkingEnabled,
-          searchEnabled,
+          thinkingEnabled: deepThinkSearchActive ? true : thinkingEnabled,
+          searchEnabled: deepThinkSearchActive ? true : searchEnabled,
+          deepThinkSearchActive,
         }),
       });
       await res.json();
@@ -578,6 +588,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const forgetMemory = async (id: string) => {
     await fetch(`/api/memories/${id}`, { method: "DELETE" });
     triggerReFetch();
+  };
+
+  const cancelRun = async (runId: string) => {
+    try {
+      await fetch(`/api/runs/cancel/${runId}`, { method: "POST" });
+      triggerReFetch();
+    } catch (err) {
+      console.error("Failed to cancel active run pipeline:", err);
+    }
   };
 
   const uploadFile = async (name: string, size: number, type: string) => {
@@ -639,6 +658,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setThinkingEnabled,
         searchEnabled,
         setSearchEnabled,
+        liveMonitorActive,
+        setLiveMonitorActive,
+        deepThinkSearchActive,
+        setDeepThinkSearchActive,
         customModels,
         allModels,
         addCustomModel,
@@ -654,6 +677,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         resolveApproval,
         addMemory,
         forgetMemory,
+        cancelRun,
         uploadFile,
         createProfile,
         createSkill,
