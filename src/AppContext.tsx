@@ -380,7 +380,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     const openRouterApiKey = localStorage.getItem("openrouter_api_key") || "";
 
-    if (thinkingEnabled) {
+    if (thinkingEnabled || deepThinkSearchActive) {
       // 2. Setup dynamic placeholder for assistant thinking message
       const asstTempId = "thinking_" + Math.random().toString(36).substring(7);
       const tempAsstMsg: Message = {

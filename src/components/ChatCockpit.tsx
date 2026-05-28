@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useApp } from "../AppContext";
 import { 
-  Send, Paperclip, CheckSquare, X, Settings, Layers, ShieldAlert,
+  Send, Paperclip, CheckSquare, X, Settings, Layers, ShieldAlert, Search,
   FileCode, Check, Copy, Radio, Sparkles, ChevronDown, Brain, Globe, Copy as CopyIcon,
   Cpu, Terminal, Activity, Loader2, Link2, Download, Archive, Eye, EyeOff,
   RefreshCw, Server, Sliders
@@ -1247,6 +1247,102 @@ export default function ChatCockpit({ setCurrentRoute }: ChatCockpitProps) {
   } = useApp();
 
   const [composorPrompt, setComposorPrompt] = useState("");
+  
+  // Custom AI DeepThink Search reactive state engines
+  interface SearchRound {
+    query: string;
+    sources: { title: string; url: string; snippet: string }[];
+    expanded: boolean;
+  }
+  const [searchRounds, setSearchRounds] = useState<SearchRound[]>([]);
+  const [finalAnswer, setFinalAnswer] = useState<string>("");
+  const [isSearching, setIsSearching] = useState<boolean>(false);
+
+  const toggleRoundExpanded = (index: number) => {
+    setSearchRounds(prev => prev.map((r, i) => i === index ? { ...r, expanded: !r.expanded } : r));
+  };
+
+  const handleDeepThinkSearch = async (overridePrompt?: string) => {
+    const query = (overridePrompt || composorPrompt).trim();
+    if (!query) return;
+
+    if (!overridePrompt) {
+      setComposorPrompt("");
+    }
+    setIsSearching(true);
+    setSearchRounds([]);
+    setFinalAnswer("");
+
+    try {
+      const response = await fetch("/api/deepthink", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: query, conversationId: activeConversation?.id })
+      });
+
+      if (!response.body) throw new Error("Null deepthink response body");
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+      let buffer = "";
+
+      let currentEvent = "";
+      let currentDataString = "";
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split("\n\n");
+        buffer = parts.pop() || "";
+
+        for (const part of parts) {
+          if (!part.trim()) continue;
+
+          let lines = part.split("\n");
+          for (const line of lines) {
+            if (line.startsWith("event:")) {
+              currentEvent = line.replace("event:", "").trim();
+            } else if (line.startsWith("data:")) {
+              currentDataString = line.replace("data:", "").trim();
+            }
+          }
+
+          if (!currentDataString) continue;
+
+          try {
+            const payload = JSON.parse(currentDataString);
+
+            if (currentEvent === "search_round") {
+              const newRound: SearchRound = {
+                query: payload.query,
+                sources: payload.sources || [],
+                expanded: true
+              };
+              setSearchRounds(prev => {
+                const collapsed = prev.map(r => ({ ...r, expanded: false }));
+                return [...collapsed, newRound];
+              });
+            } else if (currentEvent === "synthesis_chunk") {
+              setFinalAnswer(prev => prev + payload.chunk);
+            } else if (currentEvent === "error") {
+              setFinalAnswer(prev => prev + `\n\n❌ **Error during deep research loop:** ${payload.message}`);
+            }
+          } catch (pErr) {
+            console.error("SSE JSON parsing exception inside DeepThink search:", pErr);
+          }
+          currentDataString = "";
+          currentEvent = "";
+        }
+      }
+    } catch (err: any) {
+      console.error("DeepThink search execution failed:", err);
+      setFinalAnswer(`❌ **Research engine offline:** Could not connect to deep-search pipeline. Detail: ${err.message || err}`);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
   const [isDragging, setIsDragging] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [rightChatHubOpen, setRightChatHubOpen] = useState(true);
@@ -1771,160 +1867,294 @@ export default function ChatCockpit({ setCurrentRoute }: ChatCockpitProps) {
           ref={scrollContainerRef}
           className="flex-grow overflow-y-auto p-4 md:p-6 scrollbar-thin space-y-6 select-text"
         >
-          {messages.length === 0 ? (
-            <div className="flex-grow flex flex-col items-center justify-center p-8 text-center select-none py-16">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#08090f] to-[#121422] border border-cyan-500/15 flex items-center justify-center mb-6 shadow-[0_0_20px_rgba(6,182,212,0.1)]">
-                <Sparkles className="w-6 h-6 text-cyan-404 animate-pulse" />
-              </div>
-              <h3 className="text-sm font-serif italic text-zinc-100 font-bold mb-2">NEVA Intelligence Grid</h3>
-              <p className="text-zinc-500 text-[10.5px] leading-relaxed max-w-sm mb-6 font-medium">
-                Initialize deep research, analytical sweeps, or multi-agent execution routines. The workspace is loaded and synchronized with your memory profiles.
-              </p>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg w-full">
-                {[
-                  { title: "Draft high-fidelity integration tests", desc: "Builds a test runner template for websocket payloads." },
-                  { title: "Perform grounding research on market models", desc: "Searches scientific corpora for economic trend patterns." },
-                  { title: "Analyze active telemetry and debugging logs", desc: "Scans active system records to identify latency blocks." },
-                  { title: "Sync custom logic across cognitive models", desc: "Formulates a system-prompt bridge for reasoning weights." }
-                ].map((item, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setComposorPrompt(item.title)}
-                    className="text-left p-3.5 rounded-xl border border-zinc-900 bg-[#08090d]/60 hover:bg-[#12131a] hover:border-cyan-500/15 text-zinc-455 hover:text-zinc-200 transition-all cursor-pointer group"
-                  >
-                    <span className="text-[10px] font-extrabold block mb-1 text-zinc-300 group-hover:text-cyan-300 transition-colors font-sans">{item.title}</span>
-                    <span className="text-[9px] text-zinc-500 font-medium leading-normal block font-sans">{item.desc}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : (
-            messages.map((msg, index) => {
-              const isUser = msg.role === "user";
-              const { thinkContent, restContent } = parseMessageContent(msg.content);
-              const { mainBody, citationSection } = parseCitations(restContent);
-
-              return (
-                <div key={msg.id || index} className={`flex flex-col gap-2 ${isUser ? "items-end" : "items-start"} animate-fade-in`}>
-                  {/* Sender Header */}
-                  <div className="flex items-center gap-2 text-[8px] font-mono text-zinc-500 font-bold uppercase tracking-widest select-none px-1">
-                    {!isUser && (
-                      <div className="w-5 h-5 rounded-lg bg-cyan-950/80 border border-cyan-800/40 text-cyan-404 flex items-center justify-center text-[8.5px] font-extrabold shadow-[0_0_8px_rgba(6,182,212,0.15)] shrink-0">
-                        NV
-                      </div>
-                    )}
-                    <span>{isUser ? "USER COMPOSER IDENTITY" : (msg.modelUsed || "Neva Orchestrator")}</span>
-                    {isUser && (
-                      <div className="w-5 h-5 rounded-lg bg-zinc-900 border border-zinc-850 text-zinc-400 flex items-center justify-center text-[8.5px] font-mono shrink-0 font-bold">
-                        ME
-                      </div>
-                    )}
-                    {!isUser && (msg.isThinking === true || (msg.steps && msg.steps.length > 0)) && (
+          {deepThinkSearchActive ? (
+            /* Dedicated DeepThink Search interface panel */
+            <div className="flex flex-col h-full min-h-[450px] justify-between gap-6">
+              {searchRounds.length === 0 && !isSearching ? (
+                /* Empty / Start Search View */
+                <div className="flex-grow flex flex-col items-center justify-center p-8 text-center select-none py-12 sm:py-20 animate-fade-in max-w-2xl mx-auto">
+                  <div className="w-16 h-16 rounded-3xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(245,158,11,0.1)] relative">
+                    <Search className="w-7 h-7 text-amber-400" />
+                    <Sparkles className="w-4 h-4 text-amber-300 absolute -top-1 -right-1 animate-bounce" />
+                  </div>
+                  <h3 className="text-base font-serif italic text-amber-300 font-extrabold mb-2 uppercase tracking-wide">NEVA COGNITIVE DEEPTHINK SEARCH</h3>
+                  <p className="text-zinc-500 text-[11px] leading-relaxed mb-8 font-medium">
+                    Submit complex queries to Neva's deep-search web research protocol. NEVA will analyze, compile sub-queries, gather peer-reviewed citation nodes, and synthesize a professional-grade briefing paper with cross-references.
+                  </p>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 w-full">
+                    {[
+                      { title: "Superconductor Room-temperature advances", desc: "Scan recent material science portals and replication trials." },
+                      { title: "Capabilities & performance comparison: GPT-4.5 vs Gemini 1.5 Pro", desc: "Compare benchmark results, latency, and context windows." },
+                      { title: "Quantum key distribution scaling protocols", desc: "Audit peer-reviewed journals on cryptographic latency profiles." },
+                      { title: "Generative AI agent orchestration design patterns", desc: "Map architectural graphs on multi-agent communication networks." }
+                    ].map((item, idx) => (
                       <button
+                        key={idx}
                         onClick={() => {
-                          const id = msg.id || index.toString();
-                          setHiddenThinkingMsgIds(prev => ({
-                            ...prev,
-                            [id]: !prev[id]
-                          }));
+                          setComposorPrompt(item.title);
+                          handleDeepThinkSearch(item.title);
                         }}
-                        className="ml-3 inline-flex items-center gap-1 px-1.5 py-0.5 rounded border border-cyan-500/10 hover:border-cyan-500/30 bg-cyan-950/20 hover:bg-cyan-900/30 text-zinc-400 hover:text-cyan-300 transition-all cursor-pointer font-bold select-none text-[8.5px]"
+                        className="text-left p-4 rounded-xl border border-zinc-900 bg-[#08090d]/80 hover:bg-amber-950/10 hover:border-amber-500/20 text-zinc-450 hover:text-zinc-200 transition-all cursor-pointer group"
                       >
-                        {hiddenThinkingMsgIds[msg.id || index.toString()] ? (
-                          <>
-                            <EyeOff className="w-2.5 h-2.5 text-zinc-500" />
-                            <span>Show Thinking</span>
-                          </>
-                        ) : (
-                          <>
-                            <Eye className="w-2.5 h-2.5 text-cyan-400" />
-                            <span>Hide Thinking</span>
-                          </>
-                        )}
+                        <span className="text-[11px] font-bold block mb-1 text-zinc-300 group-hover:text-amber-300 transition-colors font-sans">{item.title}</span>
+                        <span className="text-[9.5px] text-zinc-550 font-medium leading-normal block font-sans">{item.desc}</span>
                       </button>
-                    )}
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                /* Search results active or complete display */
+                <div className="space-y-6 max-w-4xl mx-auto w-full animate-fade-in pb-10">
+                  
+                  {/* Research Status Tracker */}
+                  <div className="flex items-center justify-between p-4 bg-amber-950/5 border border-amber-500/15 rounded-2xl">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+                        <Brain className={`w-5 h-5 text-amber-400 ${isSearching ? "animate-pulse" : ""}`} />
+                      </div>
+                      <div className="text-left">
+                        <div className="text-xs font-bold text-amber-300">NEVA deep research timeline</div>
+                        <div className="text-[10px] text-zinc-450 font-medium mt-0.5">
+                          {isSearching ? "Actively querying and verifying multiple peer web nodes..." : "Research protocol audit complete. Verified."}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-mono font-bold px-2 py-1 rounded bg-amber-500/15 text-amber-400 border border-amber-500/25 uppercase shrink-0">
+                        {searchRounds.length} Rounds
+                      </span>
+                    </div>
                   </div>
 
-                  {/* Bubble Container */}
-                  <div className={`max-w-[90%] rounded-2xl p-4 text-xs shadow-md leading-relaxed select-text ${
-                    isUser 
-                      ? "bg-zinc-955/80 border border-zinc-800 text-zinc-200 rounded-tr-none" 
-                      : "bg-[#090a10] border border-cyan-500/10 text-zinc-300 rounded-tl-none hover:border-cyan-500/20 transition-all duration-300"
-                  }`}>
-                    {/* Render live ThinkingStream timeline */}
-                    {!isUser && (msg.isThinking === true || (msg.steps && msg.steps.length > 0)) && (
-                      <div 
-                        className="transition-all duration-500 ease-in-out overflow-hidden"
-                        style={{ 
-                          maxHeight: hiddenThinkingMsgIds[msg.id || index.toString()] ? "0px" : "1200px",
-                          opacity: hiddenThinkingMsgIds[msg.id || index.toString()] ? 0 : 1,
-                          marginBottom: hiddenThinkingMsgIds[msg.id || index.toString()] ? "0px" : "16px"
-                        }}
-                      >
-                        <ThinkingStream 
-                          steps={msg.steps || []} 
-                          isStreaming={!!msg.isThinking} 
-                        />
-                      </div>
-                    )}
-
-                    {/* Render inline Thinking Trace/Cognitive Trace if present */}
-                    {!isUser && thinkContent && (!msg.steps || msg.steps.length === 0) && (
-                      <ThinkingAccordion content={thinkContent} />
-                    )}
-
-                    {!isUser && msg.content && msg.content.includes("DeepThink Search Report") && (
-                      <div className="bg-amber-950/20 border border-amber-900/35 text-amber-400 px-3 py-1.5 rounded-xl mb-3 flex items-center gap-2 text-[9.5px] font-mono font-bold uppercase tracking-wider select-none">
-                        <Brain className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
-                        <span>NEVA AI DeepThink Synthesized Report</span>
-                      </div>
-                    )}
-
-                    {/* Content body with markdown */}
-                    <div className="markdown-body prose prose-invert max-w-none text-zinc-300 font-medium tracking-normal text-[11.5px] sm:text-xs">
-                      <Markdown components={{ code: CodeBlock }}>{mainBody}</Markdown>
-                    </div>
-
-                    {/* Render inline Citations if present */}
-                    {!isUser && citationSection && (
-                      <WebGroundingPanel content={citationSection} />
-                    )}
-
-                    {/* Render custom download & zip manager center */}
-                    {!isUser && (
-                      <MessageDownloadCenter content={msg.content} messageId={msg.id || index.toString()} />
-                    )}
-
-                    {/* Diagnostic line for premium aesthetic feel */}
-                    {!isUser && (msg.inputTokens || msg.outputTokens || msg.modelUsed) && (
-                      <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-zinc-900/60 text-[7px] font-mono text-zinc-600 select-none uppercase font-bold tracking-wider">
-                        <div className="flex gap-3">
-                          {msg.inputTokens && <span>Input: {msg.inputTokens} t</span>}
-                          {msg.outputTokens && <span>Output: {msg.outputTokens} t</span>}
+                  {/* Search Rounds Timeline */}
+                  <div className="space-y-4">
+                    <div className="text-[10px] font-mono text-zinc-500 font-bold uppercase tracking-wider px-1 text-left">Retrieved Intelligence Nodes</div>
+                    <div className="space-y-3">
+                      {searchRounds.map((round, idx) => (
+                        <div key={idx} className="border border-zinc-850 bg-[#07080c] rounded-xl overflow-hidden shadow-sm">
+                          {/* Round Header */}
+                          <div 
+                            onClick={() => toggleRoundExpanded(idx)}
+                            className="flex items-center gap-3 px-4 py-3 bg-zinc-950/40 hover:bg-zinc-950/80 transition-all cursor-pointer select-none"
+                          >
+                            <div className="w-6 h-6 rounded-lg bg-amber-500/15 flex items-center justify-center text-[11px] text-amber-400 font-mono font-extrabold shrink-0">
+                              {idx + 1}
+                            </div>
+                            <Search size={14} className="text-zinc-500 shrink-0" />
+                            <span className="text-[11.5px] font-bold text-zinc-350 truncate flex-1 text-left">{round.query}</span>
+                            <span className="text-[9.5px] font-mono text-zinc-600 bg-zinc-900 border border-zinc-855 px-2 py-0.5 rounded ml-auto flex items-center gap-1">
+                              {round.sources.length} sources {round.expanded ? "▲" : "▼"}
+                            </span>
+                          </div>
+                          
+                          {/* Sources */}
+                          {round.expanded && (
+                            <div className="p-4 bg-zinc-950/20 border-t border-zinc-900 space-y-4 divide-y divide-zinc-900/40 text-left">
+                              {round.sources.map((source, sidx) => (
+                                <div key={sidx} className={`flex items-start gap-4 text-[11px] ${sidx > 0 ? "pt-3 border-t border-zinc-900/20" : ""}`}>
+                                  <span className="text-amber-500 font-mono font-extrabold select-none">[{sidx + 1}]</span>
+                                  <div className="min-w-0 flex-1">
+                                    <a href={source.url} referrerPolicy="no-referrer" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 hover:underline cursor-pointer font-bold block truncate">
+                                      {source.title}
+                                    </a>
+                                    <div className="text-zinc-650 truncate text-[9.5px] mt-0.5 font-mono">{source.url}</div>
+                                    <div className="text-zinc-500 mt-1 leading-relaxed font-sans">{source.snippet}</div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                        <button 
-                          onClick={() => copyToClipboard(msg.content, msg.id || index.toString())}
-                          className="text-zinc-650 hover:text-zinc-400 flex items-center gap-1 cursor-pointer transition-colors uppercase"
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Synthesized Answer Output */}
+                  {finalAnswer && (
+                    <div className="border border-zinc-900 bg-gradient-to-b from-[#090a10] to-[#040507] rounded-2xl p-6 shadow-xl relative overflow-hidden text-left">
+                      <div className="absolute top-0 left-0 w-1 h-full bg-amber-500/40"></div>
+                      <div className="flex items-center gap-2 mb-4 text-amber-400">
+                        <Brain size={16} className="text-amber-400" />
+                        <span className="text-xs uppercase tracking-widest font-bold font-mono">Synthesized DeepThink Report</span>
+                      </div>
+                      
+                      {/* Markdown rendered body */}
+                      <div className="text-[12px] sm:text-[13px] text-zinc-200 leading-relaxed font-sans markdown-content space-y-4 prose prose-invert max-w-none">
+                        <Markdown>{finalAnswer}</Markdown>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Active Research Progress Indicator */}
+                  {isSearching && (
+                    <div className="p-6 border border-amber-500/15 bg-amber-950/5 rounded-2xl flex flex-col items-center justify-center text-center py-10 animate-pulse">
+                      <div className="w-10 h-10 rounded-full border-2 border-amber-500/20 border-t-amber-500 animate-spin mb-4"></div>
+                      <div className="text-xs font-bold text-amber-300">Compiling citations & synthesizing research parameters...</div>
+                      <div className="text-[10px] text-zinc-500 mt-1">Multi-stage evidence analysis models are executing context matching.</div>
+                    </div>
+                  )}
+                  
+                </div>
+              )}
+            </div>
+          ) : (
+            /* Standard chronological thread section */
+            messages.length === 0 ? (
+              <div className="flex-grow flex flex-col items-center justify-center p-8 text-center select-none py-16">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#08090f] to-[#121422] border border-cyan-500/15 flex items-center justify-center mb-6 shadow-[0_0_20px_rgba(6,182,212,0.1)]">
+                  <Sparkles className="w-6 h-6 text-cyan-404 animate-pulse" />
+                </div>
+                <h3 className="text-sm font-serif italic text-zinc-100 font-bold mb-2">NEVA Intelligence Grid</h3>
+                <p className="text-zinc-500 text-[10.5px] leading-relaxed max-w-sm mb-6 font-medium">
+                  Initialize deep research, analytical sweeps, or multi-agent execution routines. The workspace is loaded and synchronized with your memory profiles.
+                </p>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg w-full">
+                  {[
+                    { title: "Draft high-fidelity integration tests", desc: "Builds a test runner template for websocket payloads." },
+                    { title: "Perform grounding research on market models", desc: "Searches scientific corpora for economic trend patterns." },
+                    { title: "Analyze active telemetry and debugging logs", desc: "Scans active system records to identify latency blocks." },
+                    { title: "Sync custom logic across cognitive models", desc: "Formulates a system-prompt bridge for reasoning weights." }
+                  ].map((item, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setComposorPrompt(item.title)}
+                      className="text-left p-3.5 rounded-xl border border-zinc-900 bg-[#08090d]/60 hover:bg-[#12131a] hover:border-cyan-500/15 text-zinc-455 hover:text-zinc-200 transition-all cursor-pointer group"
+                    >
+                      <span className="text-[10px] font-extrabold block mb-1 text-zinc-300 group-hover:text-cyan-300 transition-colors font-sans">{item.title}</span>
+                      <span className="text-[9px] text-zinc-500 font-medium leading-normal block font-sans">{item.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              messages.map((msg, index) => {
+                const isUser = msg.role === "user";
+                const { thinkContent, restContent } = parseMessageContent(msg.content);
+                const { mainBody, citationSection } = parseCitations(restContent);
+
+                return (
+                  <div key={msg.id || index} className={`flex flex-col gap-2 ${isUser ? "items-end" : "items-start"} animate-fade-in`}>
+                    {/* Sender Header */}
+                    <div className="flex items-center gap-2 text-[8px] font-mono text-zinc-500 font-bold uppercase tracking-widest select-none px-1">
+                      {!isUser && (
+                        <div className="w-5 h-5 rounded-lg bg-cyan-950/80 border border-cyan-800/40 text-cyan-404 flex items-center justify-center text-[8.5px] font-extrabold shadow-[0_0_8px_rgba(6,182,212,0.15)] shrink-0">
+                          NV
+                        </div>
+                      )}
+                      <span>{isUser ? "USER COMPOSER IDENTITY" : (msg.modelUsed || "Neva Orchestrator")}</span>
+                      {isUser && (
+                        <div className="w-5 h-5 rounded-lg bg-zinc-900 border border-zinc-850 text-zinc-400 flex items-center justify-center text-[8.5px] font-mono shrink-0 font-bold">
+                          ME
+                        </div>
+                      )}
+                      {!isUser && (msg.isThinking === true || (msg.steps && msg.steps.length > 0)) && (
+                        <button
+                          onClick={() => {
+                            const id = msg.id || index.toString();
+                            setHiddenThinkingMsgIds(prev => ({
+                              ...prev,
+                              [id]: !prev[id]
+                            }));
+                          }}
+                          className="ml-3 inline-flex items-center gap-1 px-1.5 py-0.5 rounded border border-cyan-500/10 hover:border-cyan-505/30 bg-cyan-955/20 hover:bg-cyan-900/30 text-zinc-400 hover:text-cyan-300 transition-all cursor-pointer font-bold select-none text-[8.5px]"
                         >
-                          {copiedId === (msg.id || index.toString()) ? (
+                          {hiddenThinkingMsgIds[msg.id || index.toString()] ? (
                             <>
-                              <Check className="w-2.5 h-2.5 text-emerald-400" />
-                              <span className="text-emerald-400 font-bold">Trace Copied</span>
+                              <EyeOff className="w-2.5 h-2.5 text-zinc-500" />
+                              <span>Show Thinking</span>
                             </>
                           ) : (
                             <>
-                              <Copy className="w-2.5 h-2.5" />
-                              <span>Copy raw source</span>
+                              <Eye className="w-2.5 h-2.5 text-cyan-400" />
+                              <span>Hide Thinking</span>
                             </>
                           )}
                         </button>
+                      )}
+                    </div>
+
+                    {/* Bubble Container */}
+                    <div className={`max-w-[90%] rounded-2xl p-4 text-xs shadow-md leading-relaxed select-text ${
+                      isUser 
+                        ? "bg-zinc-955/80 border border-zinc-800 text-zinc-200 rounded-tr-none" 
+                        : "bg-[#090a10] border border-cyan-500/10 text-zinc-300 rounded-tl-none hover:border-cyan-500/20 transition-all duration-300"
+                    }`}>
+                      {/* Render live ThinkingStream timeline */}
+                      {!isUser && (msg.isThinking === true || (msg.steps && msg.steps.length > 0)) && (
+                        <div 
+                          className="transition-all duration-500 ease-in-out overflow-hidden"
+                          style={{ 
+                            maxHeight: hiddenThinkingMsgIds[msg.id || index.toString()] ? "0px" : "1200px",
+                            opacity: hiddenThinkingMsgIds[msg.id || index.toString()] ? 0 : 1,
+                            marginBottom: hiddenThinkingMsgIds[msg.id || index.toString()] ? "0px" : "16px"
+                          }}
+                        >
+                          <ThinkingStream 
+                            steps={msg.steps || []} 
+                            isStreaming={!!msg.isThinking} 
+                          />
+                        </div>
+                      )}
+
+                      {/* Render inline Thinking Trace/Cognitive Trace if present */}
+                      {!isUser && thinkContent && (!msg.steps || msg.steps.length === 0) && (
+                        <ThinkingAccordion content={thinkContent} />
+                      )}
+
+                      {!isUser && msg.content && msg.content.includes("DeepThink Search Report") && (
+                        <div className="bg-amber-955/20 border border-amber-900/35 text-amber-500 px-3 py-1.5 rounded-xl mb-3 flex items-center gap-2 text-[9.5px] font-mono font-bold uppercase tracking-wider select-none">
+                          <Brain className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
+                          <span>NEVA AI DeepThink Synthesized Report</span>
+                        </div>
+                      )}
+
+                      {/* Content body with markdown */}
+                      <div className="markdown-body prose prose-invert max-w-none text-zinc-300 font-medium tracking-normal text-[11.5px] sm:text-xs">
+                        <Markdown components={{ code: CodeBlock }}>{mainBody}</Markdown>
                       </div>
-                    )}
+
+                      {/* Render inline Citations if present */}
+                      {!isUser && citationSection && (
+                        <WebGroundingPanel content={citationSection} />
+                      )}
+
+                      {/* Render custom download & zip manager center */}
+                      {!isUser && (
+                        <MessageDownloadCenter content={msg.content} messageId={msg.id || index.toString()} />
+                      )}
+
+                      {/* Diagnostic line for premium aesthetic feel */}
+                      {!isUser && (msg.inputTokens || msg.outputTokens || msg.modelUsed) && (
+                        <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-zinc-900/60 text-[7px] font-mono text-zinc-65 select-none uppercase font-bold tracking-wider">
+                          <div className="flex gap-3">
+                            {msg.inputTokens && <span>Input: {msg.inputTokens} t</span>}
+                            {msg.outputTokens && <span>Output: {msg.outputTokens} t</span>}
+                          </div>
+                          <button 
+                            onClick={() => copyToClipboard(msg.content, msg.id || index.toString())}
+                            className="text-zinc-650 hover:text-zinc-400 flex items-center gap-1 cursor-pointer transition-colors uppercase"
+                          >
+                            {copiedId === (msg.id || index.toString()) ? (
+                              <>
+                                <Check className="w-2.5 h-2.5 text-emerald-400" />
+                                <span className="text-emerald-400 font-bold">Trace Copied</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-2.5 h-2.5" />
+                                <span>Copy raw source</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            })
+                );
+              })
+            )
           )}
 
           <div ref={scrollRef} className="h-2" />

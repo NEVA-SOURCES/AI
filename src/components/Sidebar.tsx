@@ -7,6 +7,11 @@ import {
   Trash2, Pencil, Check, X, Sparkles, Image, Brain, Search
 } from "lucide-react";
 
+// Local classnames utility for conditional Tailwind classes
+function cn(...classes: any[]) {
+  return classes.filter(Boolean).join(" ");
+}
+
 export default function Sidebar({ 
   onNavigate,
   onClose
@@ -24,7 +29,9 @@ export default function Sidebar({
     createMission,
     renameConversation,
     deleteConversation,
-    projects
+    projects,
+    deepThinkSearchActive,
+    setDeepThinkSearchActive
   } = useApp();
 
   const [workspaceDropdownOpen, setWorkspaceDropdownOpen] = useState(false);
@@ -172,18 +179,6 @@ export default function Sidebar({
           <div className="text-[9px] uppercase font-mono text-zinc-600 px-3 py-1.5 tracking-[0.2em] border-b border-zinc-900 mb-1.5 font-bold">SYSTEM CONTROLS</div>
 
           <button 
-            id="nav-search-btn"
-            onClick={() => onNavigate("search")} 
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] transition-all hover:bg-zinc-900 text-left text-zinc-400 hover:text-zinc-100 group cursor-pointer mb-2 border border-cyan-500/10 bg-cyan-500/5 shadow-[inset_0_0_10px_rgba(6,182,212,0.03)]"
-          >
-            <Search className="w-3.5 h-3.5 text-cyan-400 group-hover:scale-110 transition-transform blink-cyan shrink-0 animate-pulse" />
-            <span className="font-semibold text-zinc-100 group-hover:text-cyan-300">AI DeepThink Search</span>
-            <span className="text-[7px] font-mono bg-amber-400/15 text-amber-400 border border-amber-500/20 px-1 py-0.2 rounded font-bold ml-auto flex items-center gap-1">
-              PRO
-            </span>
-          </button>
-
-          <button 
             onClick={() => onNavigate("dashboard")} 
             className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] transition-all hover:bg-zinc-900 text-left text-zinc-400 hover:text-zinc-100 group cursor-pointer"
           >
@@ -217,6 +212,45 @@ export default function Sidebar({
             <span className="font-medium text-zinc-200 group-hover:text-zinc-100">Image Studio</span>
             <span className="text-[8px] font-mono bg-orange-500/10 text-orange-400 border border-orange-500/20 px-1.5 py-0.2 rounded font-bold ml-auto flex items-center gap-1">NEW</span>
           </button>
+
+          {/* COGNITIVE VECTORS SECTION */}
+          <div className="mt-6 border-t border-zinc-900 pt-4">
+            <div className="px-3 mb-2 text-[10px] font-medium text-zinc-650 tracking-[0.15em] uppercase font-mono">
+              Cognitive Vectors
+            </div>
+            
+            {/* AI DeepThink Search */}
+            <button
+              onClick={() => {
+                setDeepThinkSearchActive(true);
+                onNavigate("chat");
+                // Create a new DeepThink conversation if none active
+                if (!activeConversation || activeConversation.title !== "DeepThink Search") {
+                  createMission("DeepThink Search", "research");
+                }
+              }}
+              className={cn(
+                "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all group border",
+                deepThinkSearchActive 
+                  ? "bg-amber-950/20 border-amber-500/20 text-amber-300"
+                  : "hover:bg-zinc-900/50 text-zinc-450 hover:text-zinc-200 border-transparent bg-zinc-950/20"
+              )}
+            >
+              <div className={cn(
+                "w-9 h-9 rounded-lg flex items-center justify-center transition-all shrink-0",
+                deepThinkSearchActive ? "bg-amber-500/15" : "bg-[#090a10] group-hover:bg-zinc-800"
+              )}>
+                <Search size={18} className={deepThinkSearchActive ? "text-amber-400" : "text-zinc-500"} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[12px] sm:text-[13px] font-semibold leading-normal">AI DeepThink Search</div>
+                <div className="text-[10px] text-zinc-600 truncate mt-0.5 font-medium">Multi-step web research</div>
+              </div>
+              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/25 shrink-0 font-extrabold select-none">
+                PRO
+              </span>
+            </button>
+          </div>
 
           {/* MISSIONS RECENT LIST */}
           <div className="mt-4">
