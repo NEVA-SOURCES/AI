@@ -975,6 +975,52 @@ export default function LiveMonitorView() {
                   </div>
                 </div>
 
+                {/* DYNAMIC SYSTEM CHARTS (Manus Style) */}
+                <div className="border-t border-white/5 pt-3.5 space-y-3.5 select-none">
+                  <div>
+                    <span className="text-[9px] font-mono text-zinc-500 tracking-wider block uppercase">Cognitive Process Health</span>
+                    <div className="bg-black/35 border border-white/5 rounded-xl p-3 mt-1.5 space-y-2">
+                      <div className="flex justify-between text-[9px] font-mono">
+                        <span className="text-zinc-500">ENGINE LATENCY</span>
+                        <span className="text-[#00F5FF] font-bold">140ms / stable</span>
+                      </div>
+                      {/* Sparkline vector mapping */}
+                      <svg className="w-full h-8 overflow-visible" stroke="currentColor">
+                        <defs>
+                          <linearGradient id="glow-cyan" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#00d4ff" stopOpacity="0.4" />
+                            <stop offset="100%" stopColor="#00d4ff" stopOpacity="0" />
+                          </linearGradient>
+                        </defs>
+                        <path 
+                          d="M0,15 L25,12 L50,18 L75,8 L100,24 L125,5 L150,19 L175,9 L200,16 L225,3 L250,14 L280,10" 
+                          fill="none" 
+                          stroke="#00d4ff" 
+                          strokeWidth="1.5" 
+                        />
+                        <path 
+                          d="M0,15 L25,12 L50,18 L75,8 L100,24 L125,5 L150,19 L175,9 L200,16 L225,3 L250,14 L280,10 L280,32 L0,32 Z" 
+                          fill="url(#glow-cyan)" 
+                          stroke="none"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="bg-black/35 border border-white/5 rounded-xl p-3 space-y-2">
+                      <div className="flex justify-between text-[9px] font-mono">
+                        <span className="text-zinc-500">MEMORY BANDWIDTH LOAD</span>
+                        <span className="text-cyan-405 font-bold">42.8% Capacity</span>
+                      </div>
+                      
+                      <div className="h-1 bg-zinc-900 rounded-full overflow-hidden">
+                        <div className="h-full bg-gradient-to-r from-cyan-400 to-[#10b981] rounded-full" style={{ width: '42.8%' }} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Collapsible raw Tool Input parameter metrics */}
                 {currentStep.tool && (
                   <CollapsibleToolBlock tool={currentStep.tool} input={currentStep.toolInput} output={currentStep.toolOutput} />

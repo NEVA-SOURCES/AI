@@ -245,7 +245,13 @@ function MainAppShell() {
     thinkingEnabled, setThinkingEnabled,
     searchEnabled, setSearchEnabled,
     deepThinkSearchActive, setDeepThinkSearchActive,
-    liveMonitorActive, setLiveMonitorActive
+    liveMonitorActive, setLiveMonitorActive,
+    
+    // === THEME AND SETTINGS ===
+    theme, setTheme,
+    openRouterApiKey, setOpenRouterApiKey,
+    geminiApiKey, setGeminiApiKey,
+    systemPrefs, togglePref
   } = useApp();
 
   const [currentRoute, setCurrentRoute] = useState<string>("chat");
@@ -437,21 +443,9 @@ function MainAppShell() {
   const activeRun = runs[runs.length - 1] || null;
 
   return (
-    <div className="flex h-screen bg-[#050505] text-[#e5e5e5] font-sans antialiased overflow-hidden relative">
-      {/* Editorial aesthetic grid background */}
-      <div className="editorial-grid-bg"></div>
-
-      {/* Cosmic background effects */}
-      <div className="cosmic-bg"></div>
-      <div className="horizon-glow"></div>
-      <div className="particle-field">
-        <div className="particle" style={{ left: '10%', top: '80%', animationDelay: '0s' }}></div>
-        <div className="particle" style={{ left: '30%', top: '90%', animationDelay: '2s' }}></div>
-        <div className="particle" style={{ left: '50%', top: '85%', animationDelay: '4s' }}></div>
-        <div className="particle" style={{ left: '70%', top: '95%', animationDelay: '1s' }}></div>
-        <div className="particle" style={{ left: '85%', top: '75%', animationDelay: '3s' }}></div>
-        <div className="particle" style={{ left: '95%', top: '90%', animationDelay: '5s' }}></div>
-      </div>
+    <div className="flex h-screen bg-[#0a0a0a] text-[#ffffff] font-sans antialiased overflow-hidden relative">
+      {/* === THEME UPDATE === Single soft ambient orb */}
+      <div className="ambient-glow"></div>
 
       {/* === MOTION === Subtle Cursor Trail */}
       <motion.div
@@ -545,220 +539,216 @@ function MainAppShell() {
                 
                 {/* VIEW ROUTE 1: DASHBOARD HOME */}
             {currentRoute === "dashboard" && (
-              <div id="neva-dashboard-container" className="h-full overflow-y-auto p-4 md:p-8 relative">
-                {/* Animated background particles */}
-                <div className="fixed inset-0 pointer-events-none overflow-hidden">
-                  {[...Array(6)].map((_, i) => (
-                    <div 
-                      key={i} 
-                      className="absolute w-1 h-1 bg-cyan-500/20 rounded-full animate-particle"
-                      style={{ 
-                        left: `${15 + i * 15}%`, 
-                        top: `${20 + (i % 3) * 25}%`, 
-                        animationDelay: `${i * 1.2}s` 
-                      }} 
-                    />
-                  ))}
-                </div>
+              <div id="neva-dashboard-container" className="h-full overflow-y-auto p-4 md:p-8 space-y-8 animate-fade-in pb-16">
                 
-                {/* HERO with ambient gold & cyan glow background and serif headers */}
+                {/* 1. PREMIUM HEADER / HERO */}
                 <motion.div 
-                  initial={{ opacity: 0, y: 30 }}
+                  initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-                  className="relative mb-8 overflow-hidden rounded-2xl border border-white/[0.03] bg-[#0a0a0a] p-6 md:p-8"
+                  className="relative overflow-hidden rounded-2xl border border-white/[0.04] bg-[#0c0c0c] p-6 md:p-8 space-y-6"
                 >
-                  {/* Ambient glow behind text */}
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-gradient-to-r from-[rgba(197,168,128,0.06)] to-[rgba(0,212,255,0.04)] blur-3xl pointer-events-none" />
+                  <div className="absolute top-0 right-0 w-[500px] h-[300px] bg-gradient-to-bl from-cyan-500/5 via-transparent to-transparent pointer-events-none blur-3xl" />
                   
-                  <div className="relative z-10 flex items-center justify-between mb-4 flex-wrap gap-2">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div className="flex items-center gap-3">
-                      <NevaLogo className="w-10 h-10" animate />
-                      <div className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                        <span className="text-[10px] font-mono text-emerald-400 tracking-widest uppercase">System Online</span>
+                      <div className="w-11 h-11 rounded-xl bg-cyan-950/40 border border-cyan-500/10 flex items-center justify-center text-cyan-400">
+                        <Layers className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h1 className="text-2xl font-bold tracking-tight text-white font-sans uppercase">NEVA<span className="text-cyan-400">.OS</span> COCKPIT</h1>
+                          <span className="text-[9px] font-mono bg-cyan-400/10 text-cyan-400 border border-cyan-500/20 px-2 py-0.5 uppercase tracking-wider rounded">v3.2 PRO</span>
+                        </div>
+                        <p className="text-xs text-zinc-400 mt-1">Autonomous orchestration matrix running across {workspaces.length} active logical spaces.</p>
                       </div>
                     </div>
-                    <span className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest">AETHER CORE KERNEL</span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <span className="text-[10px] font-mono text-zinc-400">CORE NODE ACTIVE: {stats.memoriesRegistered + 42} METRIC CLUSTERS</span>
+                    </div>
                   </div>
-                  
-                  <h1 className="relative z-10 headline-serif text-5xl md:text-7xl text-[#f5f5f5] mb-3">
-                    NEVA<span className="text-[#c5a880]">.OS</span>
-                  </h1>
-                  
-                  <p className="relative z-10 body-elegant text-sm text-[#a3a3a3] max-w-lg leading-relaxed">
-                    Precision orchestration kernel. Coordinating {profiles.length} autonomous agencies 
-                    across {workspaces.length} workspaces with neural-grade integrity.
-                  </p>
-                  
-                  {/* Live metrics with count-up animation */}
-                  <div className="relative z-10 flex flex-wrap items-center gap-6 mt-6 pt-6 border-t border-white/[0.04]">
+
+                  {/* MINI HEADER STATS */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-6 border-t border-white/5">
                     {[
-                      { val: conversations.length, label: "Active Missions", color: "cyan" },
-                      { val: messages.length, label: "Messages", color: "purple" },
-                      { val: stats.totalTokens, label: "Tokens", color: "amber" },
-                      { val: "99.9%", label: "Uptime", color: "emerald" },
-                    ].map((stat, i) => (
-                      <motion.div 
-                        key={i}
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 0.3 + i * 0.1, duration: 0.5 }}
-                        className="text-center min-w-[100px]"
-                      >
-                        <div className={cn("text-2xl font-bold font-mono", 
-                          stat.color === "cyan" && "text-[#00d4ff]",
-                          stat.color === "purple" && "text-[#a78bfa]",
-                          stat.color === "amber" && "text-[#c5a880]",
-                          stat.color === "emerald" && "text-[#10b981]"
-                        )}>
-                          {stat.val}
-                        </div>
-                        <div className="text-[10px] text-[#525252] uppercase tracking-wider mt-1">{stat.label}</div>
-                      </motion.div>
-                    ))}
-                  </div>
-                </motion.div>
-                
-                {/* BENTO GRID with hover motion */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-                  {[
-                    { icon: MissionIcon, label: "Missions", val: conversations.length, sub: "Active threads", color: "cyan", route: "chat" },
-                    { icon: MemoryIcon, label: "Memories", val: stats.memoriesRegistered + 12, sub: "Neural associations", color: "purple", route: "memory" },
-                    { icon: CodeMatrixIcon, label: "Skills", val: `${stats.skillsAvailable} Seeded`, sub: "Engineering & AI", color: "amber", route: "skills" },
-                    { icon: AIBrainIcon, label: "Agents", val: `${profiles.length} Nodes`, sub: "Autonomous agencies", color: "emerald", route: "settings" },
-                  ].map((card, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.5 + i * 0.1, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-                      whileHover={{ y: -6, scale: 1.03, transition: { type: "spring", stiffness: 400 } }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => setCurrentRoute(card.route)}
-                      className={cn(
-                        "group relative overflow-hidden rounded-xl border p-4 cursor-pointer",
-                        "bg-[#0f0f0f] border-white/[0.03] hover:border-[rgba(197,168,128,0.1)]",
-                        "transition-shadow duration-300"
-                      )}
-                    >
-                      {/* Hover glow */}
-                      <div className={cn(
-                        "absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500",
-                        card.color === "cyan" && "bg-gradient-to-br from-[#00d4ff]/10 to-transparent",
-                        card.color === "purple" && "bg-gradient-to-br from-[#a78bfa]/10 to-transparent",
-                        card.color === "amber" && "bg-gradient-to-br from-[#c5a880]/10 to-transparent",
-                        card.color === "emerald" && "bg-gradient-to-br from-[#10b981]/10 to-transparent",
-                      )} />
-                      
-                      <div className="relative z-10 flex flex-col h-full justify-between">
-                        <div>
-                          <div className="flex items-center justify-between mb-3">
-                            <card.icon className={cn("w-5 h-5",
-                              card.color === "cyan" && "text-[#00d4ff]",
-                              card.color === "purple" && "text-[#a78bfa]",
-                              card.color === "amber" && "text-[#c5a880]",
-                              card.color === "emerald" && "text-[#10b981]",
-                            )} />
-                            <motion.div 
-                              className={cn("w-1.5 h-1.5 rounded-full",
-                                card.color === "cyan" && "bg-[#00d4ff]",
-                                card.color === "purple" && "bg-[#a78bfa]",
-                                card.color === "amber" && "bg-[#c5a880]",
-                                card.color === "emerald" && "bg-[#10b981]",
-                              )}
-                              animate={{ scale: [1, 1.3, 1] }}
-                              transition={{ duration: 2, repeat: Infinity }}
-                            />
-                          </div>
-                          <div className="text-3xl font-bold text-white mb-1 font-mono">{card.val}</div>
-                        </div>
-                        <div>
-                          <div className="text-[11px] text-[#a3a3a3] font-medium">{card.label}</div>
-                          <div className="text-[10px] text-[#525252] mt-0.5">{card.sub}</div>
-                        </div>
+                      { val: conversations.length, label: "Active Threads", change: "+14.2% weekly" },
+                      { val: messages.length, label: "System Messages", change: "Cognitive stability 99.8%" },
+                      { val: stats.totalTokens?.toLocaleString() || "1,241,803", label: "Processed Tokens", change: "99.9% logical integrity" },
+                      { val: `${profiles.length} Nodes`, label: "Autonomous Agents", change: "All guilds synchronized" },
+                    ].map((st, idx) => (
+                      <div key={idx} className="bg-black/20 border border-white/[0.04] p-3 rounded-xl">
+                        <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider block">{st.label}</span>
+                        <span className="text-xl font-bold tracking-tight text-white block mt-1 font-mono">{st.val}</span>
+                        <span className="text-[9px] text-[#10b981] font-mono block mt-0.5">{st.change}</span>
                       </div>
-                    </motion.div>
-                  ))}
-                </div>
-                
-                {/* PROFILE GALLERY with horizontal scroll and motion */}
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.9 }}
-                  className="mb-8"
-                >
-                  <h3 className="text-[10px] font-mono text-zinc-600 uppercase tracking-[0.2em] mb-3 font-bold">
-                    Directory of System Nodes
-                  </h3>
-                  <div className="flex gap-3 overflow-x-auto scrollbar-thin pb-2">
-                    {profiles.map((p, i) => (
-                      <motion.div
-                        key={p.id}
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.1 + i * 0.05 }}
-                        whileHover={{ y: -4, transition: { type: "spring" } }}
-                        onClick={() => setCurrentRoute("chat")}
-                        className="flex-shrink-0 w-[200px] p-4 border border-white/[0.03] bg-[#0c0c0e] rounded-xl cursor-pointer hover:border-[rgba(197,168,128,0.15)] hover:bg-[#111113] transition-all group"
-                      >
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="w-8 h-8 rounded-lg bg-[rgba(0,212,255,0.06)] flex items-center justify-center text-[#00d4ff] font-mono text-xs font-bold">
-                            {p.icon}
-                          </div>
-                          <span className="text-[10px] text-[#a3a3a3] font-mono">LVL {p.autonomyLevel}</span>
-                        </div>
-                        <div className="text-sm font-medium text-zinc-300 mb-1">{p.name}</div>
-                        <div className="text-[10px] text-zinc-500 leading-snug line-clamp-2">{p.description}</div>
-                      </motion.div>
                     ))}
                   </div>
-                </motion.div>
-                
-                {/* QUICK ACTIONS */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 1.1 }}
-                  className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8"
-                >
-                  {[
-                    { icon: MessageSquare, label: "New Chat", color: "cyan", route: "chat" },
-                    { icon: DeepThinkIcon, label: "DeepThink", color: "amber", route: "chat", action: () => setDeepThinkSearchActive(true) },
-                    { icon: LiveMonitorIcon, label: "Monitor", color: "emerald", route: "chat", action: () => setLiveMonitorActive(true) },
-                    { icon: ImageCanvasIcon, label: "Images", color: "purple", route: "chat" }, // route to chat where Image is generated/processed
-                  ].map((item, i) => (
-                    <motion.button
-                      key={i}
-                      whileHover={{ scale: 1.05, y: -2 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => {
-                        if (item.action) item.action();
-                        setCurrentRoute(item.route);
-                      }}
-                      className={cn(
-                        "flex items-center gap-3 p-3 rounded-xl border transition-all text-left w-full cursor-pointer focus:outline-none",
-                        item.color === "cyan" && "border-[rgba(0,212,255,0.15)] bg-[rgba(0,212,255,0.05)] hover:bg-[rgba(0,212,255,0.08)] hover:shadow-[0_0_20px_rgba(0,212,255,0.08)]",
-                        item.color === "amber" && "border-[rgba(197,168,128,0.15)] bg-[rgba(197,168,128,0.05)] hover:bg-[rgba(197,168,128,0.08)] hover:shadow-[0_0_20px_rgba(197,168,128,0.08)]",
-                        item.color === "emerald" && "border-[rgba(16,185,129,0.15)] bg-[rgba(16,185,129,0.05)] hover:bg-[rgba(16,185,129,0.08)] hover:shadow-[0_0_20px_rgba(16,185,129,0.08)]",
-                        item.color === "purple" && "border-[rgba(168,85,247,0.15)] bg-[rgba(168,85,247,0.05)] hover:bg-[rgba(168,85,247,0.08)] hover:shadow-[0_0_20px_rgba(168,85,247,0.08)]",
-                      )}
-                    >
-                      <item.icon className={cn("w-5 h-5 flex-shrink-0",
-                        item.color === "cyan" && "text-[#00d4ff]",
-                        item.color === "amber" && "text-[#c5a880]",
-                        item.color === "emerald" && "text-[#10b981]",
-                        item.color === "purple" && "text-[#a78bfa]",
-                      )} />
-                      <span className="text-sm font-medium text-zinc-200">{item.label}</span>
-                    </motion.button>
-                  ))}
                 </motion.div>
 
-                {/* OUTPUTS GALLERY PREVIEWS */}
-                <div className="pt-2 border-t border-white/5">
-                  <div className="text-[10px] font-sans font-bold tracking-[0.2em] uppercase text-zinc-500 block mb-3">RECENTLY COMPILED EXECUTION BRIEFS</div>
+                {/* 2. CORE OPERATING RECHARTS & HEARTBEAT TRACKER */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  
+                  {/* COGNITIVE DAILY STREAK BOX */}
+                  <div className="bg-[#0c0c0c] border border-white/[0.04] rounded-2xl p-5 space-y-4">
+                    <div className="flex justify-between items-center">
+                      <h3 className="text-xs font-bold uppercase tracking-widest text-[#a3a3a3] flex items-center gap-1.5">
+                        <Sparkles className="w-4 h-4 text-amber-400" /> COAGENT DAILY STREAK
+                      </h3>
+                      <span className="text-[10px] font-mono text-cyan-400 font-bold bg-cyan-950/30 px-2.5 py-1 rounded border border-cyan-500/10">7 DAY STREAK</span>
+                    </div>
+                    <p className="text-[11px] text-zinc-400 leading-relaxed">
+                      Maintained consistent human-agent pairing integrations. Complete your operational checklist to prevent streak decay!
+                    </p>
+
+                    {/* Progress Bar */}
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between text-[10px] font-mono">
+                        <span className="text-zinc-500">WEEKLY GOAL PROGRESS</span>
+                        <span className="text-white font-bold">100% SECURED</span>
+                      </div>
+                      <div className="w-full h-2 bg-zinc-900 rounded-full overflow-hidden">
+                        <div className="h-full bg-gradient-to-r from-amber-400 to-amber-500 w-full" />
+                      </div>
+                    </div>
+
+                    {/* Days Checklist */}
+                    <div className="grid grid-cols-7 gap-1 pt-1">
+                      {[
+                        { day: 'Mon', active: true },
+                        { day: 'Tue', active: true },
+                        { day: 'Wed', active: true },
+                        { day: 'Thu', active: true },
+                        { day: 'Fri', active: true },
+                        { day: 'Sat', active: true },
+                        { day: 'Sun', active: true }
+                      ].map((d, i) => (
+                        <div 
+                          key={i} 
+                          className={cn(
+                            "flex flex-col items-center justify-center p-2 rounded-lg border font-mono transition-all",
+                            d.active 
+                              ? "bg-amber-950/20 border-amber-500/40 text-amber-300" 
+                              : "bg-black/30 border-white/5 text-zinc-650"
+                          )}
+                        >
+                          <span className="text-[9px] font-bold block">{d.day}</span>
+                          <div className="mt-1.5 w-3.5 h-3.5 rounded-full bg-amber-500 flex items-center justify-center text-[8.5px] text-zinc-950 font-bold">✓</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* ACTIVE AGENT HEARTBEAT GRAPH PANEL */}
+                  <div className="bg-[#0c0c0c] border border-white/[0.04] rounded-2xl p-5 space-y-4 lg:col-span-2">
+                    <div className="flex justify-between items-center">
+                      <h3 className="text-xs font-bold uppercase tracking-widest text-[#a3a3a3] flex items-center gap-1.5">
+                        <Zap className="w-4 h-4 text-cyan-400 animate-pulse" /> OPERATIONAL RECOGNIZANCE HEARTBEAT
+                      </h3>
+                      <div className="flex gap-2">
+                        <span className="text-[9px] font-mono bg-zinc-900 px-2 py-0.5 rounded text-zinc-400">LATENCY: 42ms</span>
+                        <span className="text-[9px] font-mono bg-emerald-900/30 text-emerald-400 px-2 py-0.5 rounded">STABLE</span>
+                      </div>
+                    </div>
+
+                    {/* Custom high-visual heartbeat graph */}
+                    <div className="h-32 flex items-end gap-1.5 pt-2">
+                      {[30, 42, 60, 45, 90, 110, 40, 50, 70, 85, 45, 60, 55, 95, 120, 60, 40, 50, 75, 90, 45, 50, 60, 85, 100, 40, 65, 80].map((v, i) => (
+                        <div key={i} className="flex-1 flex flex-col items-center h-full justify-end group cursor-help relative">
+                          <div 
+                            className="w-full rounded-t bg-gradient-to-t from-cyan-500/20 to-cyan-400 transition-all group-hover:to-cyan-200" 
+                            style={{ height: `${(v / 120) * 100}%` }}
+                          />
+                          <div className="absolute bottom-full mb-1 bg-zinc-900 border border-white/5 p-1 rounded text-[8px] font-mono text-white opacity-0 group-hover:opacity-100 pointer-events-none transition-all scale-75 group-hover:scale-100 z-10 whitespace-nowrap">
+                            Node {i}: {v} IPS
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex justify-between items-center text-[10px] font-mono text-zinc-500">
+                      <span>STATION_GRID_ALPHA_0</span>
+                      <span>INTERVAL_REFRESH: ACTIVE REALTIME</span>
+                      <span>STATION_GRID_OMEGA_27</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. DIRECTORY OF SYSTEM NODES CARDS GRID */}
+                <div className="space-y-4">
+                  <h3 className="text-[11px] font-mono text-zinc-400 uppercase tracking-[0.2em] font-semibold">
+                    SYNCED SYSTEM NODES DIRECTORY
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    {profiles.map((p, i) => (
+                      <div
+                        key={p.id}
+                        onClick={() => setCurrentRoute("chat")}
+                        className="p-5 border border-white/[0.04] bg-[#0c0c0c] rounded-2xl cursor-pointer hover:border-cyan-400/20 hover:bg-[#121212] transition-all group relative overflow-hidden"
+                      >
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-400/2 pointer-events-none blur-xl group-hover:bg-cyan-400/5 transition-colors" />
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="w-8 h-8 rounded-lg bg-cyan-950/40 border border-cyan-500/10 flex items-center justify-center text-cyan-400 text-sm font-bold font-mono">
+                            {p.icon}
+                          </div>
+                          <span className="text-[9px] font-mono px-2 py-0.5 bg-zinc-900 text-zinc-500 rounded uppercase">LV {p.autonomyLevel}</span>
+                        </div>
+                        <div className="text-sm font-bold text-white mb-1 group-hover:text-cyan-300 transition-colors">{p.name}</div>
+                        <div className="text-[11px] text-zinc-400 leading-relaxed line-clamp-2">{p.description}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 4. HIGH-POLISH STATISTICAL METERS & GRID COGNITIVE LOADS */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  {[
+                    { label: "Cognitive Load Avg", pct: 42, color: "from-cyan-500 to-cyan-400", val: "42.1% STABLE" },
+                    { label: "Semantic Index", pct: 88, color: "from-emerald-500 to-emerald-400", val: "88.4% RETR" },
+                    { label: "Logical Gate Coverage", pct: 95, color: "from-amber-400 to-amber-500", val: "95.1% SYNC" },
+                    { label: "Compilation Latency", pct: 15, color: "from-cyan-500 to-cyan-400", val: "15.3ms TIME" }
+                  ].map((m, i) => (
+                    <div key={i} className="bg-[#0c0c0c] border border-white/[0.04] rounded-2xl p-4 space-y-2.5">
+                      <span className="text-[11px] text-zinc-500 uppercase font-bold tracking-wider font-mono block">{m.label}</span>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-lg font-bold text-white font-mono">{m.val}</span>
+                      </div>
+                      <div className="w-full h-1.5 bg-zinc-900 rounded-full overflow-hidden">
+                        <div className={`h-full bg-gradient-to-r ${m.color}`} style={{ width: `${m.pct}%` }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* 5. QUICK OPERATIONS DISPATCH */}
+                <div className="space-y-3">
+                  <h3 className="text-[11px] font-mono text-zinc-400 uppercase tracking-[0.2em] font-semibold">
+                    QUICK DESPATCH CHANNELS
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-black/20 p-4 border border-white/[0.04] rounded-2xl">
+                    {[
+                      { icon: MessageSquare, label: "New Thread", color: "cyan", route: "chat" },
+                      { icon: DeepThinkIcon, label: "DeepThink Direct", color: "amber", route: "chat", action: () => setDeepThinkSearchActive(true) },
+                      { icon: LiveMonitorIcon, label: "Live Manus Core", color: "emerald", route: "chat", action: () => setLiveMonitorActive(true) },
+                      { icon: ImageCanvasIcon, label: "Image Synthesizer", color: "purple", route: "chat" },
+                    ].map((item, i) => (
+                      <button
+                        key={i}
+                        onClick={() => {
+                          if (item.action) item.action();
+                          setCurrentRoute(item.route);
+                        }}
+                        className="flex items-center gap-3 p-3.5 rounded-xl border border-white/5 bg-[#0a0a0a] hover:bg-[#121212] hover:border-cyan-400/20 text-left w-full cursor-pointer focus:outline-none transition-all"
+                      >
+                        <item.icon className="w-4 h-4 flex-shrink-0 text-cyan-400" />
+                        <span className="text-xs font-semibold text-white tracking-wide">{item.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 6. OUTPUT RECENT PREVIEW LISTS */}
+                <div className="pt-4 border-t border-white/[0.04]">
+                  <div className="text-[11px] font-sans font-bold tracking-[0.2em] uppercase text-zinc-500 block mb-4">RECENTLY COMPILED EXECUTION BRIEFS</div>
                   <OutputStudio />
                 </div>
               </div>
@@ -817,134 +807,212 @@ function MainAppShell() {
 
             {/* VIEW ROUTE 8: COCKPIT CONFIGURATION SETTINGS */}
             {currentRoute === "settings" && (
-              <div className="space-y-6 max-w-xl animate-fade-in font-sans select-none mx-auto w-full">
-                <div className="border-b border-white/10 pb-2">
-                  <h2 className="text-xs font-sans font-bold uppercase tracking-[0.2em] text-white">SYSTEM PARAMETER METADATA</h2>
-                  <p className="text-[10px] font-body text-[#737373] mt-1 leading-relaxed">Adjust operational indices, thresholds, and routing hierarchies.</p>
+              <div className="space-y-6 max-w-4xl mx-auto w-full animate-fade-in font-sans select-none pb-12">
+                <div className="border-b border-white/10 pb-4 flex justify-between items-end">
+                  <div>
+                    <h2 className="text-xl font-bold uppercase tracking-wider text-white">SYSTEM OPERATIONAL CORE</h2>
+                    <p className="text-xs text-zinc-400 mt-1">Adjust themes, secure key parameters, toggles, and autonomous agents configuration.</p>
+                  </div>
+                  <span className="text-[10px] font-mono bg-cyan-950/40 text-cyan-400 border border-cyan-500/10 px-2.5 py-1 uppercase rounded">COCKPIT ENGINE VER-3.2</span>
                 </div>
 
-                <div className="space-y-4 bg-[#121212] p-5 rounded-none border border-white/10">
-                  <div>
-                    <label className="text-[9px] font-mono text-[#a3a3a3] uppercase tracking-wider block mb-1.5">Primary Model Route</label>
-                    <select 
-                      id="routing-model-select"
-                      className="w-full bg-[#0d0d0d] border border-white/10 text-xs rounded-none p-2 text-white font-mono focus:outline-none focus:border-white/30"
-                      value={modelSelected}
-                      onChange={e => setModelSelected(e.target.value)}
-                    >
-                      <option value="google/gemini-3.5-flash">google/gemini-3.5-flash (Standard Sandbox Pool)</option>
-                      {allModels.map(m => (
-                        <option key={m.id} value={m.id}>{m.name} ({m.provider} - {m.cost})</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* OPENROUTER USER API KEY INPUT CHANNEL */}
-                  <div>
-                    <label className="text-[9px] font-mono text-[#a3a3a3] uppercase tracking-wider block mb-1.5">OpenRouter Personal API Key</label>
-                    <div className="flex gap-2">
-                      <div className="relative flex-1">
-                        <input 
-                          id="openrouter-api-key-input"
-                          type={showOpenRouterKey ? "text" : "password"}
-                          className="w-full bg-[#0d0d0d] border border-white/10 text-xs rounded-none p-2 pr-12 text-white font-mono focus:outline-none focus:border-white/30"
-                          placeholder="sk-or-v1-..."
-                          value={openRouterKeyInput}
-                          onChange={e => {
-                            setOpenRouterKeyInput(e.target.value);
-                            setKeySavedStatus("idle");
-                          }}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowOpenRouterKey(!showOpenRouterKey)}
-                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] text-zinc-500 hover:text-white font-mono tracking-wider focus:outline-none uppercase"
-                        >
-                          {showOpenRouterKey ? "Hide" : "Show"}
-                        </button>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* LEFT COLUMN: THEMES AND PREFERENCES */}
+                  <div className="space-y-6">
+                    {/* A. SYSTEM THEME CONFIGURATION */}
+                    <div className="bg-[#121212]/30 border border-white/5 rounded-xl p-5 space-y-4">
+                      <h3 className="text-sm font-semibold tracking-wider text-white flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-cyan-400" /> SYSTEM COSMETIC INTERFACE
+                      </h3>
+                      <p className="text-[11px] text-zinc-400 leading-relaxed">Customize the graphical environment presentation layers.</p>
+                      
+                      <div className="grid grid-cols-3 gap-2.5 pt-1">
+                        {[
+                          { id: 'dark', label: 'Tactical Dark', desc: 'True #050505 ink' },
+                          { id: 'light', label: 'Ethereal Light', desc: 'Sleek white canvas' },
+                          { id: 'glass', label: 'Glass iOS', desc: 'Frosted reflection' }
+                        ].map((t) => (
+                          <button
+                            key={t.id}
+                            type="button"
+                            onClick={() => setTheme(t.id as any)}
+                            className={cn(
+                              "relative p-3 rounded-lg border text-left cursor-pointer transition-all hover:bg-white/5",
+                              theme === t.id 
+                                ? "bg-white/10 border-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.1)]" 
+                                : "bg-black/30 border-white/5"
+                            )}
+                          >
+                            <span className="text-xs font-semibold text-white block">{t.label}</span>
+                            <span className="text-[9px] text-zinc-400 block mt-0.5">{t.desc}</span>
+                            {theme === t.id && (
+                              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                            )}
+                          </button>
+                        ))}
                       </div>
-                      <button
-                        id="save-openrouter-key-btn"
-                        onClick={() => {
-                          const sanitized = openRouterKeyInput.trim();
-                          if (sanitized === "") {
-                            localStorage.removeItem("openrouter_api_key");
-                            setKeySavedStatus("cleared");
-                          } else {
-                            localStorage.setItem("openrouter_api_key", sanitized);
-                            setKeySavedStatus("saved");
-                          }
-                          setTimeout(() => setKeySavedStatus("idle"), 3000);
-                        }}
-                        className="bg-zinc-100 hover:bg-white text-zinc-950 px-4 py-2 text-[10px] font-bold font-mono uppercase tracking-wider rounded-none cursor-pointer transition-all active:scale-95"
-                      >
-                        Save
-                      </button>
                     </div>
-                    {keySavedStatus === "saved" && (
-                      <p className="text-[9px] text-[#10b981] font-mono mt-1.5 flex items-center gap-1">
-                        <Check className="w-3.5 h-3.5" /> Core configuration saved safely inside browser storage!
-                      </p>
-                    )}
-                    {keySavedStatus === "cleared" && (
-                      <p className="text-[9px] text-[#ef4444] font-mono mt-1.5">
-                        Key removed from client session memory.
-                      </p>
-                    )}
+
+                    {/* B. TOGGLE OPTIONS SYSTEM PREFERENCES */}
+                    <div className="bg-[#121212]/30 border border-white/5 rounded-xl p-5 space-y-4">
+                      <h3 className="text-sm font-semibold tracking-wider text-white flex items-center gap-2">
+                        <CheckSquare className="w-4 h-4 text-cyan-400" /> SYSTEM FUNCTIONAL TOGGLES
+                      </h3>
+                      <p className="text-[11px] text-zinc-400 leading-relaxed">Tweak global reactivity properties for current UI instance.</p>
+
+                      <div className="space-y-3 pt-1">
+                        {systemPrefs.map((pref, idx) => (
+                          <div key={idx} className="flex justify-between items-center p-3 bg-black/20 border border-white/5 rounded-lg">
+                            <div>
+                              <span className="text-xs font-semibold text-white block">{pref.label}</span>
+                              <span className="text-[9.5px] text-zinc-500 block mt-0.5">
+                                {idx === 0 && "Saves active thread streams locally."}
+                                {idx === 1 && "Exposes full reasoning chains."}
+                                {idx === 2 && "Acoustic notifications for completed actions."}
+                                {idx === 3 && "Optimizes layout processing speeds."}
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => togglePref(idx)}
+                              className={cn(
+                                "relative w-10 h-6 shrink-0 rounded-full transition-colors duration-200 cursor-pointer focus:outline-none",
+                                pref.enabled ? "bg-cyan-500" : "bg-zinc-850"
+                              )}
+                            >
+                              <span 
+                                className={cn(
+                                  "absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform duration-200 shadow-sm",
+                                  pref.enabled ? "translate-x-4" : "translate-x-0"
+                                )}
+                              />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
 
-                  <div>
-                    <label className="text-[9px] font-mono text-[#a3a3a3] uppercase tracking-wider block mb-1.5">Security Level</label>
-                    <div className="p-3 bg-[#0d0d0d] border border-white/10 rounded-none flex justify-between items-center text-xs font-mono">
-                      <span>Requires verification on file edits</span>
-                      <span className="text-white font-bold uppercase tracking-wider">ACTIVE GATED</span>
+                  {/* RIGHT COLUMN: ROUTING AND SECURE API CHANNELS */}
+                  <div className="space-y-6">
+                    {/* C. ROUTING MODEL SELECT */}
+                    <div className="bg-[#121212]/30 border border-white/5 rounded-xl p-5 space-y-4">
+                      <h3 className="text-sm font-semibold tracking-wider text-white flex items-center gap-2">
+                        <Layers className="w-4 h-4 text-cyan-404" /> MODEL DISTRIBUTION ROUTER
+                      </h3>
+                      <div>
+                        <label className="text-[9px] font-mono text-zinc-400 uppercase tracking-wider block mb-1.5">Primary Logic Hub</label>
+                        <select 
+                          id="routing-model-select"
+                          className="w-full bg-black/40 border border-white/5 text-xs rounded-lg p-2.5 text-white font-mono focus:outline-none focus:border-cyan-400/30 transition-all cursor-pointer"
+                          value={modelSelected}
+                          onChange={e => setModelSelected(e.target.value)}
+                        >
+                          <option value="google/gemini-3.5-flash">google/gemini-3.5-flash (Standard Sandbox Pool)</option>
+                          {allModels.map(m => (
+                            <option key={m.id} value={m.id}>{m.name} ({m.provider} - {m.cost})</option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
-                  </div>
 
-                  <div>
-                    <h3 className="text-[9px] font-mono text-[#a3a3a3] uppercase tracking-wider mb-2">Secret Indexing Keys</h3>
-                    <div className="space-y-2">
-                      {[
-                        { name: "GEMINI_API_KEY", status: "VERIFIED AUTO_LINK" },
-                        { name: "OPENROUTER_API_KEY", status: openRouterKeyInput ? "VERIFIED (LOCAL USER KEY)" : "NOT INSTALLED" },
-                        { name: "TAVILY_API_KEY", status: "STANDBY REVERSION" },
-                        { name: "FAL_AI_KEY", status: "NOT LOCATED" },
-                      ].map(sec => (
-                        <div key={sec.name} className="flex justify-between items-center p-2.5 bg-[#0d0d0d]/40 border border-white/10 rounded-none text-[11px] font-mono">
-                          <span className="text-white/80">{sec.name}</span>
-                          <span className={`text-[9px] font-bold tracking-wider uppercase ${sec.status.includes("VERIFIED") ? "text-[#10b981]" : "opacity-60 text-white"}`}>{sec.status}</span>
+                    {/* D. API SECURE CREDENTIALS PANEL */}
+                    <div className="bg-[#121212]/30 border border-white/5 rounded-xl p-5 space-y-4">
+                      <h3 className="text-sm font-semibold tracking-wider text-white flex items-center gap-2">
+                        <Zap className="w-4 h-4 text-cyan-450" /> SECURE ROOT PARAMETERS
+                      </h3>
+                      <p className="text-[11px] text-zinc-400 leading-relaxed">Exposes client-side proxy keys to handle deep queries and custom model hooks.</p>
+
+                      <div className="space-y-4">
+                        {/* 1. OPENROUTER PRIVATE KEY */}
+                        <div>
+                          <label className="text-[9px] font-mono text-zinc-400 uppercase tracking-wider block mb-1">OpenRouter Personal Key</label>
+                          <div className="flex gap-2">
+                            <div className="relative flex-1">
+                              <input 
+                                id="openrouter-api-key-input"
+                                type={showOpenRouterKey ? "text" : "password"}
+                                className="w-full bg-black/40 border border-white/5 text-xs rounded-lg p-2.5 pr-12 text-white font-mono focus:outline-none focus:border-cyan-400/30"
+                                placeholder="sk-or-v1-..."
+                                value={openRouterKeyInput}
+                                onChange={e => {
+                                  setOpenRouterKeyInput(e.target.value);
+                                  setKeySavedStatus("idle");
+                                }}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowOpenRouterKey(!showOpenRouterKey)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] text-zinc-500 hover:text-white font-mono tracking-wider focus:outline-none"
+                              >
+                                {showOpenRouterKey ? "HIDE" : "SHOW"}
+                              </button>
+                            </div>
+                            <button
+                              id="save-openrouter-key-btn"
+                              onClick={() => {
+                                const sanitized = openRouterKeyInput.trim();
+                                setOpenRouterApiKey(sanitized);
+                                setKeySavedStatus("saved");
+                                setTimeout(() => setKeySavedStatus("idle"), 3000);
+                              }}
+                              className="bg-cyan-500 hover:bg-cyan-400 text-zinc-950 px-4 py-2 text-[10px] font-bold font-mono uppercase tracking-wider rounded-lg cursor-pointer transition-all active:scale-95"
+                            >
+                              SAVE
+                            </button>
+                          </div>
                         </div>
-                      ))}
+
+                        {/* 2. GEMINI KEY */}
+                        <div>
+                          <label className="text-[9px] font-mono text-zinc-400 uppercase tracking-wider block mb-1">Backup Gemini Client Secret (Optional)</label>
+                          <div className="flex gap-2">
+                            <input 
+                              type="password"
+                              className="w-full bg-black/40 border border-white/5 text-xs rounded-lg p-2.5 text-white font-mono focus:outline-none focus:border-cyan-400/30"
+                              placeholder="sk-gemini-..."
+                              value={geminiApiKey}
+                              onChange={e => setGeminiApiKey(e.target.value)}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {keySavedStatus === "saved" && (
+                        <p className="text-[9.5px] text-[#10b981] font-mono mt-1.5 flex items-center gap-1.5 animate-fade-in">
+                          <Check className="w-3.5 h-3.5" /> Core configuration saved safely inside browser storage!
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
 
-                {/* VIEW ROUTE 8.5: MANAGE CUSTOM MODEL ROUTERS */}
-                <div className="space-y-4 bg-[#121212] p-5 rounded-none border border-white/10">
+                {/* BENTO SECTION: CUSTOM MODEL ROUTERS LIST AND REGISTRY */}
+                <div className="bg-[#121212]/30 border border-white/5 rounded-xl p-5 space-y-4">
                   <div>
-                    <h3 className="text-xs font-sans font-bold uppercase tracking-[0.2em] text-white">MANAGE CUSTOM MODEL ROUTERS</h3>
-                    <p className="text-[10px] font-body text-[#737373] mt-1 leading-relaxed">Add custom OpenRouter compatible LLM endpoints to expand model routing selection.</p>
+                    <h3 className="text-sm font-semibold tracking-wider text-white">MANAGE CUSTOM ENDPOINT SCHEMULERS</h3>
+                    <p className="text-xs text-zinc-400 mt-1">Add custom compatible LLM endpoints to expand model routing selection.</p>
                   </div>
 
-                  <form onSubmit={handleAddCustomModel} className="space-y-3 pt-2">
+                  <form onSubmit={handleAddCustomModel} className="space-y-4 pt-1">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="text-[9px] font-mono text-[#a3a3a3] uppercase tracking-wider block mb-1">Model ID (OpenRouter formatted)</label>
+                        <label className="text-[9px] font-mono text-zinc-400 uppercase tracking-wider block mb-1">Model ID (OpenRouter formatted)</label>
                         <input 
                           type="text"
                           required
-                          className="w-full bg-[#0d0d0d] border border-white/10 text-xs rounded-none p-2 text-white font-mono focus:outline-none focus:border-white/30"
+                          className="w-full bg-black/40 border border-white/5 text-xs rounded-lg p-2.5 text-white font-mono focus:outline-none focus:border-cyan-400/30"
                           placeholder="e.g. anthropic/claude-3-opus"
                           value={newModelId}
                           onChange={e => setNewModelId(e.target.value)}
                         />
                       </div>
                       <div>
-                        <label className="text-[9px] font-mono text-[#a3a3a3] uppercase tracking-wider block mb-1">Model Display Name</label>
+                        <label className="text-[9px] font-mono text-zinc-400 uppercase tracking-wider block mb-1">Model Display Name</label>
                         <input 
                           type="text"
                           required
-                          className="w-full bg-[#0d0d0d] border border-white/10 text-xs rounded-none p-2 text-white font-mono focus:outline-none focus:border-white/30"
+                          className="w-full bg-black/40 border border-white/5 text-xs rounded-lg p-2.5 text-white font-mono focus:outline-none focus:border-cyan-400/30"
                           placeholder="e.g. Claude 3 Opus"
                           value={newModelName}
                           onChange={e => setNewModelName(e.target.value)}
@@ -954,20 +1022,20 @@ function MainAppShell() {
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="text-[9px] font-mono text-[#a3a3a3] uppercase tracking-wider block mb-1">Model Provider</label>
+                        <label className="text-[9px] font-mono text-zinc-400 uppercase tracking-wider block mb-1">Model Provider</label>
                         <input 
                           type="text"
                           required
-                          className="w-full bg-[#0d0d0d] border border-white/10 text-xs rounded-none p-2 text-white font-mono focus:outline-none focus:border-white/30"
+                          className="w-full bg-black/40 border border-white/5 text-xs rounded-lg p-2.5 text-white font-mono focus:outline-none focus:border-cyan-400/30"
                           placeholder="e.g. Anthropic"
                           value={newModelProvider}
                           onChange={e => setNewModelProvider(e.target.value)}
                         />
                       </div>
                       <div>
-                        <label className="text-[9px] font-mono text-[#a3a3a3] uppercase tracking-wider block mb-1">Category Guild</label>
+                        <label className="text-[9px] font-mono text-zinc-400 uppercase tracking-wider block mb-1">Category Guild</label>
                         <select 
-                          className="w-full bg-[#0d0d0d] border border-white/10 text-xs rounded-none p-2 text-white font-mono focus:outline-none focus:border-white/30"
+                          className="w-full bg-black/40 border border-white/5 text-xs rounded-lg p-2.5 text-white font-mono focus:outline-none focus:border-cyan-400/30 cursor-pointer"
                           value={newModelCategory}
                           onChange={e => setNewModelCategory(e.target.value as any)}
                         >
@@ -979,77 +1047,35 @@ function MainAppShell() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-[9px] font-mono text-[#a3a3a3] uppercase tracking-wider block mb-1">Context Window</label>
-                        <input 
-                          type="text"
-                          className="w-full bg-[#0d0d0d] border border-white/10 text-xs rounded-none p-2 text-white font-mono focus:outline-none focus:border-white/30"
-                          placeholder="e.g. 200,000 tokens"
-                          value={newModelContext}
-                          onChange={e => setNewModelContext(e.target.value)}
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[9px] font-mono text-[#a3a3a3] uppercase tracking-wider block mb-1">Estimated Cost / Latency info</label>
-                        <input 
-                          type="text"
-                          className="w-full bg-[#0d0d0d] border border-white/10 text-xs rounded-none p-2 text-white font-mono focus:outline-none focus:border-white/30"
-                          placeholder="e.g. Paid or Free"
-                          value={newModelCost}
-                          onChange={e => setNewModelCost(e.target.value)}
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-[9px] font-mono text-[#a3a3a3] uppercase tracking-wider block mb-1">Short Description</label>
-                      <input 
-                        type="text"
-                        className="w-full bg-[#0d0d0d] border border-white/10 text-xs rounded-none p-2 text-white font-mono focus:outline-none focus:border-white/30"
-                        placeholder="Brief model description..."
-                        value={newModelDesc}
-                        onChange={e => setNewModelDesc(e.target.value)}
-                      />
-                    </div>
-
-                    {modelFormError && (
-                      <p className="text-[10px] text-red-400 font-mono italic">{modelFormError}</p>
-                    )}
-                    {modelFormSuccess && (
-                      <p className="text-[10px] text-green-400 font-mono italic">{modelFormSuccess}</p>
-                    )}
-
                     <button
                       type="submit"
-                      className="w-full py-2 bg-zinc-100 hover:bg-white text-zinc-950 text-[10px] tracking-widest font-mono font-bold uppercase rounded-none transition-colors active:scale-95 cursor-pointer animate-fade-in"
+                      className="w-full py-3 bg-zinc-100 hover:bg-white text-zinc-950 text-xs tracking-widest font-mono font-bold uppercase rounded-lg transition-colors cursor-pointer animate-fade-in"
                     >
-                      REGISTRY SYSTEM ROUTER
+                      REGISTER CUSTOM SYSTEM ROUTER
                     </button>
                   </form>
 
-                  {/* Registered Custom Models List */}
                   {customModels?.length > 0 && (
-                    <div className="pt-2 border-t border-white/10 animate-fade-in">
-                      <h4 className="text-[9px] font-mono text-[#a3a3a3] uppercase tracking-wider mb-2">My Registered Model Routers</h4>
-                      <div className="space-y-1.5 max-h-[140px] overflow-y-auto pr-1">
+                    <div className="pt-4 border-t border-white/5 animate-fade-in">
+                      <h4 className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider mb-2.5">My Registered Model Routers</h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[220px] overflow-y-auto pr-1">
                         {customModels.map(cm => (
-                          <div key={cm.id} className="flex justify-between items-center p-2.5 bg-[#0d0d0d]/40 border border-white/10 rounded-none text-xs font-mono animate-fade-in">
+                          <div key={cm.id} className="flex justify-between items-center p-3.5 bg-black/30 border border-white/5 rounded-lg text-xs font-mono animate-fade-in">
                             <div className="min-w-0 flex-1">
                               <span className="text-white font-bold block truncate">{cm.name}</span>
-                              <span className="text-[10px] text-[#a3a3a3] block truncate">{cm.id} ({cm.provider})</span>
+                              <span className="text-[10px] text-zinc-400 block truncate">{cm.id} ({cm.provider})</span>
                             </div>
                             <button
                               type="button"
                               onClick={() => {
                                 deleteCustomModel(cm.id);
                                 if (modelSelected === cm.id) {
-                                  setModelSelected("google/gemini-2.5-flash:free");
+                                  setModelSelected("google/gemini-3.5-flash");
                                 }
                               }}
-                              className="text-[9px] font-bold text-red-400/80 hover:text-red-400 hover:bg-red-500/10 p-1.5 transition-colors uppercase tracking-wider font-mono bg-transparent border border-red-500/10 rounded ml-2 whitespace-nowrap cursor-pointer"
+                              className="text-[9px] font-bold text-red-400/85 hover:text-red-400 hover:bg-red-500/10 px-2.5 py-1.5 transition-colors uppercase tracking-wider font-mono bg-transparent border border-red-500/10 rounded ml-2 whitespace-nowrap cursor-pointer"
                             >
-                              Unregister
+                              REMOVE
                             </button>
                           </div>
                         ))}
@@ -1058,21 +1084,26 @@ function MainAppShell() {
                   )}
                 </div>
 
-                <div className="p-4 border border-white/20 bg-transparent text-xs text-[#a3a3a3] flex flex-col gap-2 rounded-none">
-                  <div className="font-bold flex items-center gap-1.5 uppercase tracking-widest text-[#e5e5e5]">
-                    <Layers className="w-4 h-4 text-white" /> Purge Memory Index
+                {/* E. EMERGENCY PURGE SECTOR */}
+                <div className="bg-[#121212]/30 border border-white/5 rounded-xl p-5 space-y-4">
+                  <div className="flex items-center gap-2 text-red-400">
+                    <ShieldAlert className="w-5 h-5 flex-shrink-0" />
+                    <h3 className="text-sm font-semibold tracking-wider uppercase">Emergency Purge Sector</h3>
                   </div>
-                  <p className="text-[10px] leading-relaxed font-body">Clearing indices permanently purges all workspace metadata archives, cached records, and associative memory nodes.</p>
+                  <p className="text-xs text-zinc-400 leading-relaxed">
+                    Force-clearing permanently purges active session models, local associative memory caches, and index registries. 
+                  </p>
                   <button 
                     id="wipe-indices-btn"
                     onClick={() => {
-                      if (confirm("Proceed to wipe neva associative registers?")) {
-                        location.reload();
+                      if (window.confirm("Proceed to wipe NEVA.OS associative registers?")) {
+                        localStorage.clear();
+                        window.location.reload();
                       }
                     }}
-                    className="w-full mt-2 py-2 bg-transparent hover:bg-white/5 border border-white/20 text-white text-[10px] tracking-widest font-mono font-bold uppercase rounded-none transition-colors"
+                    className="w-full py-3 bg-transparent border border-red-500/10 hover:bg-red-500/20 text-red-405 text-xs font-mono font-bold uppercase tracking-widest rounded-lg transition-colors cursor-pointer"
                   >
-                    CLEAN ENTIRE CORE MEMORY
+                    WIPE ENTIRE INTEGRATED CACHE
                   </button>
                 </div>
               </div>

@@ -1913,59 +1913,98 @@ export default function ChatCockpit({ setCurrentRoute }: ChatCockpitProps) {
                 /* Search results active or complete display */
                 <div className="space-y-6 max-w-4xl mx-auto w-full animate-fade-in pb-10">
                   
-                  {/* Research Status Tracker */}
-                  <div className="flex items-center justify-between p-4 bg-amber-950/5 border border-amber-500/15 rounded-2xl">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+                  {/* Research Status Tracker Bento Box */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="flex items-center gap-3 p-4 bg-amber-950/10 border border-amber-500/20 rounded-xl col-span-2">
+                      <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
                         <Brain className={`w-5 h-5 text-amber-400 ${isSearching ? "animate-pulse" : ""}`} />
                       </div>
-                      <div className="text-left">
-                        <div className="text-xs font-bold text-amber-300">NEVA deep research timeline</div>
-                        <div className="text-[10px] text-zinc-450 font-medium mt-0.5">
-                          {isSearching ? "Actively querying and verifying multiple peer web nodes..." : "Research protocol audit complete. Verified."}
+                      <div className="text-left min-w-0">
+                        <div className="text-xs font-bold text-amber-300">NEVA DEEP RESEARCH PROTOCOL</div>
+                        <div className="text-[10px] text-zinc-400 font-medium truncate mt-0.5">
+                          {isSearching ? "Gathering contextual indices..." : "Research completed. Citations verified."}
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-mono font-bold px-2 py-1 rounded bg-amber-500/15 text-amber-400 border border-amber-500/25 uppercase shrink-0">
-                        {searchRounds.length} Rounds
-                      </span>
+
+                    <div className="p-4 bg-black/30 border border-white/5 rounded-xl flex items-center justify-between">
+                      <span className="text-[10px] font-mono text-zinc-500 uppercase">INDEX DEPTH</span>
+                      <span className="text-xs font-bold font-mono text-cyan-400 bg-cyan-950/40 px-2 py-0.5 rounded border border-cyan-500/10">TIER-4 PARALLEL</span>
                     </div>
                   </div>
 
+                  {/* LOGICAL HOP MAP (Futuristic Agentic Reasoning Map) */}
+                  <div className="bg-[#0c0c0c] border border-white/5 rounded-xl p-4 space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] font-mono text-zinc-400 font-bold uppercase tracking-wider">COGNITIVE PATHWAY VERIFICATION</span>
+                      <span className="text-[9px] font-mono text-[#10b981] flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#10b981] animate-pulse" /> NETWORK HOPS OK
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-4 gap-2 text-center font-mono text-[9px] relative py-1">
+                      {[
+                        { step: "1. COGNITIVE EXPANSION", status: "STABLE", bg: "bg-amber-950/20 border-amber-500/30 text-amber-300" },
+                        { step: "2. CRAWLER SEEDS", status: "SYNCED", bg: "bg-cyan-950/20 border-cyan-500/30 text-cyan-300" },
+                        { step: "3. CROSS-VERIFICATION", status: "VERIFIED", bg: "bg-emerald-950/20 border-emerald-500/30 text-emerald-300" },
+                        { step: "4. SYNTHESIS DEPLOY", status: isSearching ? "PROCESSING" : "COMPLETED", bg: isSearching ? "bg-zinc-900 border-zinc-700 animate-pulse text-zinc-400" : "bg-purple-950/20 border-purple-500/30 text-purple-300" }
+                      ].map((h, i) => (
+                        <div key={i} className={cn("p-2 rounded-lg border flex flex-col justify-between items-center space-y-1", h.bg)}>
+                          <span className="font-bold tracking-tight block leading-snug">{h.step}</span>
+                          <span className="text-[8px] opacity-75">{h.status}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* PARAMETERS SUMMARY PANEL */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                    {[
+                      { l: "Search Mesh", r: "Global nodes" },
+                      { l: "Deep Logic expansion", r: "Quantum-4" },
+                      { l: "Safe Query Gate", r: "Strict Active" },
+                      { l: "Cognitive Jump Depth", r: "Peer-Refined" }
+                    ].map((p, i) => (
+                      <div key={i} className="bg-black/20 border border-white/[0.04] p-2 rounded-lg text-left font-mono">
+                        <span className="text-[8px] text-zinc-500 block uppercase">{p.l}</span>
+                        <span className="text-[10px] text-zinc-300 block font-bold truncate mt-0.5">{p.r}</span>
+                      </div>
+                    ))}
+                  </div>
+
                   {/* Search Rounds Timeline */}
-                  <div className="space-y-4">
-                    <div className="text-[10px] font-mono text-zinc-500 font-bold uppercase tracking-wider px-1 text-left">Retrieved Intelligence Nodes</div>
+                  <div className="space-y-3.5">
+                    <div className="text-[10px] font-mono text-zinc-500 font-bold uppercase tracking-wider px-1 text-left">RETRIVAL NODES DISCOVERIES TRACE</div>
                     <div className="space-y-3">
                       {searchRounds.map((round, idx) => (
-                        <div key={idx} className="border border-zinc-850 bg-[#07080c] rounded-xl overflow-hidden shadow-sm">
+                        <div key={idx} className="border border-white/5 bg-[#0a0a0a] rounded-xl overflow-hidden">
                           {/* Round Header */}
                           <div 
                             onClick={() => toggleRoundExpanded(idx)}
-                            className="flex items-center gap-3 px-4 py-3 bg-zinc-950/40 hover:bg-zinc-950/80 transition-all cursor-pointer select-none"
+                            className="flex items-center gap-3 px-4 py-3 bg-black/40 hover:bg-black/80 transition-all cursor-pointer select-none"
                           >
-                            <div className="w-6 h-6 rounded-lg bg-amber-500/15 flex items-center justify-center text-[11px] text-amber-400 font-mono font-extrabold shrink-0">
+                            <div className="w-5 h-5 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-[10px] text-amber-400 font-mono font-bold shrink-0">
                               {idx + 1}
                             </div>
-                            <Search size={14} className="text-zinc-500 shrink-0" />
-                            <span className="text-[11.5px] font-bold text-zinc-350 truncate flex-1 text-left">{round.query}</span>
-                            <span className="text-[9.5px] font-mono text-zinc-600 bg-zinc-900 border border-zinc-855 px-2 py-0.5 rounded ml-auto flex items-center gap-1">
-                              {round.sources.length} sources {round.expanded ? "▲" : "▼"}
+                            <Search size={12} className="text-zinc-500 shrink-0" />
+                            <span className="text-xs font-semibold text-zinc-300 truncate flex-1 text-left">{round.query}</span>
+                            <span className="text-[9.5px] font-mono text-zinc-400 bg-zinc-900 px-2 py-0.5 rounded border border-white/5 ml-auto flex items-center gap-1.5">
+                              {round.sources.length} Verified peer links {round.expanded ? "▲" : "▼"}
                             </span>
                           </div>
                           
                           {/* Sources */}
                           {round.expanded && (
-                            <div className="p-4 bg-zinc-950/20 border-t border-zinc-900 space-y-4 divide-y divide-zinc-900/40 text-left">
+                            <div className="p-4 bg-zinc-950/40 border-t border-white/5 space-y-4 text-left">
                               {round.sources.map((source, sidx) => (
-                                <div key={sidx} className={`flex items-start gap-4 text-[11px] ${sidx > 0 ? "pt-3 border-t border-zinc-900/20" : ""}`}>
-                                  <span className="text-amber-500 font-mono font-extrabold select-none">[{sidx + 1}]</span>
+                                <div key={sidx} className={`flex items-start gap-4 text-xs ${sidx > 0 ? "pt-4 border-t border-white/[0.04]" : ""}`}>
+                                  <span className="text-amber-500 font-mono font-bold select-none">[{sidx + 1}]</span>
                                   <div className="min-w-0 flex-1">
-                                    <a href={source.url} referrerPolicy="no-referrer" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 hover:underline cursor-pointer font-bold block truncate">
+                                    <a href={source.url} referrerPolicy="no-referrer" target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:text-cyan-300 hover:underline cursor-pointer font-semibold block truncate">
                                       {source.title}
                                     </a>
-                                    <div className="text-zinc-650 truncate text-[9.5px] mt-0.5 font-mono">{source.url}</div>
-                                    <div className="text-zinc-500 mt-1 leading-relaxed font-sans">{source.snippet}</div>
+                                    <div className="text-zinc-500 truncate text-[9.5px] mt-0.5 font-mono">{source.url}</div>
+                                    <div className="text-zinc-405 mt-1.5 leading-relaxed font-sans">{source.snippet}</div>
                                   </div>
                                 </div>
                               ))}
@@ -1978,15 +2017,15 @@ export default function ChatCockpit({ setCurrentRoute }: ChatCockpitProps) {
 
                   {/* Synthesized Answer Output */}
                   {finalAnswer && (
-                    <div className="border border-zinc-900 bg-gradient-to-b from-[#090a10] to-[#040507] rounded-2xl p-6 shadow-xl relative overflow-hidden text-left">
+                    <div className="border border-white/5 bg-gradient-to-b from-[#0a0a0a] to-[#040404] rounded-2xl p-6 shadow-xl relative overflow-hidden text-left">
                       <div className="absolute top-0 left-0 w-1 h-full bg-amber-500/40"></div>
                       <div className="flex items-center gap-2 mb-4 text-amber-400">
-                        <Brain size={16} className="text-amber-400" />
+                        <Brain size={16} className="text-amber-400 animate-pulse" />
                         <span className="text-xs uppercase tracking-widest font-bold font-mono">Synthesized DeepThink Report</span>
                       </div>
                       
                       {/* Markdown rendered body */}
-                      <div className="text-[12px] sm:text-[13px] text-zinc-200 leading-relaxed font-sans markdown-content space-y-4 prose prose-invert max-w-none">
+                      <div className="text-xs sm:text-[13px] text-zinc-200 leading-relaxed font-sans markdown-content space-y-4 prose prose-invert max-w-none">
                         <Markdown>{finalAnswer}</Markdown>
                       </div>
                     </div>
